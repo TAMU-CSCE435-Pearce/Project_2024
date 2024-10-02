@@ -1,9 +1,9 @@
 # CSCE 435 Group project
 
-## 0. Group number: 
+## 0. Group number: 23
 
 ## 1. Group members:
-1. First
+1. Jeffrey Mitchell
 2. Second
 3. Third
 4. Fourth
