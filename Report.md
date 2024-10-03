@@ -2,7 +2,7 @@
 
 ## 0. Group number: 1 
 
-** Communicate through Discord **
+**Communicate through Discord**
 
 ## 1. Group members:
 1. Jack Vacek - Merge Sort
