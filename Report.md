@@ -9,7 +9,8 @@
 4. Darwin White
 
 ## 2. Project topic (e.g., parallel sorting algorithms)
-
+We will implement and analyze the effectiveness of four parallel sorting algorithms. 
+We will communicate via text message   
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 
 - Bitonic Sort:
