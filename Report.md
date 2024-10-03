@@ -1,6 +1,6 @@
 # CSCE 435 Group project
 
-## 0. Group number: 
+## 0. Group number:
 
 ## 1. Group members:
 1. First
@@ -18,7 +18,137 @@
 - Radix Sort:
 
 ### 2b. Pseudocode for each parallel algorithm
-- For MPI programs, include MPI calls you will use to coordinate between processes
+
+Bitonic sort:
+```
+main() {
+  MASTER, UP = 0
+  DOWN = 1
+
+  MPI_Status status;
+
+  n = number of elements to be sorted
+
+  MPI_Init()
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
+  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+
+  if numtasks is not a power of 2:
+    return 1
+
+  n_each = n / numtasks
+
+  local_data = empty array of size n_each
+
+  if taskid == 0:
+    A = array of elements to be sorted
+
+  MPI_Scatter(a, n_each, MPI_INT, local_data, n_each, MPI_INT, 0, MPI_COMM_WORLD) // scatter an equal amount of the data among all processes
+
+  // Sort this processes data in UP direction
+  local_bitonic_up(local_data, n_each)
+
+  // Parallel sort
+  log_numtasks = log_2(numtasks)
+  for (s = 0; s < log_numtasks; s++) {
+    for (t = s; t >= 0; t--) {
+      // Determine partner
+      partner_task = taskid ^ (1 << t)
+
+      // Determine direction based on bit at s + 1 in taskid
+      direction = UP if ((taskid >> (s + 1)) mod 2 == 0) else DOWN
+
+      // Data exchange with partner
+      partner_data = empty array of size n_each
+      if (taskid > partner_task) {
+        MPI_Send(local_data, n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, status)
+        MPI_Recv(partner_data, n_each, MPI_INT, partner_task, 0 , MPI_COMM_WORLD, status)
+      } else {
+        MPI_Recv(partner_data, n_each, MPI_INT, partner_task, 0 , MPI_COMM_WORLD, status)
+        MPI_Send(local_data, n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, status)
+      }
+
+      // Combine data with partner
+      merged = merge(local_data, partner_data, direction)
+
+      // Split data with partner
+      if direction == UP and taskid < partner or direction == DOWN and rank > partner {
+        copy(merged, merged + n_each - 1, local_data)
+      } else {
+        copy(merged + n_each, merged + n_each * 2 - 1, local_data)
+      }
+    }
+  }
+
+  // Collect data
+  MPI_Gather(local_data, n_each, MPI_INT, A, n_each, MPI_INT, 0, MPI_COMM_WORLD)
+
+  // Output
+  if taskid == 0 {
+    output A
+  }
+
+  MPI_Finalize()
+}
+
+local_bitonic_up(array[], n) {
+  for (k = 2; k <= size; k *= 2) {
+    for (j = k / 2; j >= 1; j /= 2) {
+      for (i = 0; i < size; i++) {
+        ixj = i ^ j
+        if ixj > i and array[i] > array[ixj] {
+          swap(array[i], array[ixj])
+        }
+      }
+    }
+  }
+}
+
+merge(a[], b[], direction, n_each) {
+  i, j, k = 0
+  result = empty array of size n_each * 2
+
+  while i < n_each && j < n_each {
+    if direction == UP {
+      if a[i] <= b[j] {
+        result[k] = a[i]
+        i++
+      } else {
+        result[k] = b[j]
+        j++
+      }
+    } else { // Merge in reverse
+      if a[i] >= b[j] {
+        result[k] = a[i]
+        i++
+      } else {
+        result[k] = b[j]
+        j++
+      }
+    }
+    k++
+  }
+
+  while i < n_each {
+    result[k] = a[i]
+    i++
+    k++
+  }
+
+  while j < n_each {
+    result[k] = b[j]
+    j++
+    k++
+  }
+
+  return result
+}
+```
+
+- Sample Sort:
+- Merge Sort:
+- Radix Sort:
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input sizes, Input types
