@@ -93,24 +93,49 @@ else if master process:
 ```txt
 # Note: we can either generate the problem using centralized master, and provide data by sending with offset, or have the processes generate based on rank independently to avoid sending overhead.
 
-generate the specified problem type(sorted, sorted with 1% swap, etc...)
-
+if Master:
+    generate the specified problem type(sorted, sorted with 1% swap, etc...)
+    send offsets to worker processes #MPI_Send(...)
+    
 if worker process:
-    receive information from master process
-    
-    create "shadow" array/histogram to temporarilly store output
+    receive offset for processing #MPI_Send(...)
+    #create local bucket storage
+    histogramBucket[numProcs][numBuckets]
 
-    # compute and sort offset step, in short, perform k passes on the array until sorted
-    from least significant digit to most significant digit n:
-        iterate through offset and place array items into the shadow array (buckets) based on respective value of digit (i.e. sort based on significant digit chosen)
-        continue to sort based on increasing digit place such that the newly placed digit in the bucket does not violate the previously established order.
+    # compute and build histogram for offset (sort local offset) by determining how many elements should go into each bucket histogramBucket[numProc][bucket]
 
-    send offset results to master process
+    for each item  i in the array offset:
+        #determine bucket to place a[i]
+        bucket = compute_bucket(a[i])
+        #increment the bucket count
+        histogramBucket[numProc][bucket]++
 
-else if master process:
-    recieve/gather the sorted offsets from worker processes
-    
-    combine intermediate results from worker processes by performing final radix sweep on the combined results. (shown in worker process)
+    MPI_Barrier() # to wait for all worker processors to finish computing
+
+# master processor determines the position for each by doing prefix sum to determine final output location for element
+# this is the sequential portion
+if master proc:
+    base = 0
+    for bucket in numBuckets:
+        for numProc in numProcs:
+            # add base to the histogramBucketLocation and compute partial sum to determine index of each bucket
+            histogramBucket[numProc][bucket] += base
+
+            #update base, we are computing prefix
+            base = histogramBucket[numProc][bucket]
+
+MPI_Barrier(...) # wait for this indexer algorithm to be determined 
+MPI_Scatter(...) # send the indices information to the workers so they correct indices to place their offset elements 
+if worker process:
+    for each item i in array offset:
+        bucket = compute_bucket(a[i])
+        #place the item a[i] in the correct location
+        # send the item to the proc that takes care of that offset or have a global output array:
+        if histogramBucket[numProc][bucket] index is within the worker offset domain:
+            outputResult[histogramBucket[numProc][bucket]++] =a[i]
+        else:
+            MPI_send(...) to the correct proc with the index
+    MPI_Recv(...) items and their indices and place into correct offset location
 ```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
