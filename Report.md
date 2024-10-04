@@ -153,8 +153,33 @@ if worker process:
 ```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
+____
+
 #### Input sizes, Input types
-With regards to input sizes and input types for the project, there are 
+With regards to input sizes and input types for the project, the sorting algorithms implemented will test the following specifications:
+##### Input sizes for the array being sorted:
+The input size of the array being sorted will take on sizes such that size corresponds to powers of two. This is done to ensure that data partitioning for each process will result in relatively similar problem subset sizes. In particular, the problem sizes being tested involve the following:
+$$
+2^{16}, 2^{18}, 
+2^{20}, 2^{22}, 
+2^{24}, 2^{26}
+$$
+
+##### Input types:
+Input types utilized in the project will take the following configurations:
+- Sorted 
+    - The array passed in as input will already be in sorted form.
+- Random
+    - The array passed in as input will include randomly generated elements such that the array is very likely unsorted.
+- Reverse sorted
+    - The array passed in as input is sorted, but uses the opposite order. 
+    - *(e.g. If we are sorting descending, the reverse sorted array will be ascending and vice versa)*
+- 1% Perturbed
+    - The array is mostly sorted, with 1% of array items being swapped or placed in unsorted position.
+
+##### Number of Processes used:
+For the sake of this project, the number of processes being tested will also be done using powers of two. More specifically, the process counts utilized in runs will include the following configurations: $2, 4, 8, 16, 32, 64, 128, 256, 512, \text{and }1024$ processes.
+
 #### Strong scaling
 The stong scaling potential of an algorithm can be analyzed by keeping the problem size fixed, while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. We will increase processor count progressively, testing powers of two for their performance (2, 4, 8, 16 processors, etc.). The actual problem size will be decided based on benchmarking a small processor count in order to ensure that jobs can complete on a reasonable timescale (hours at most). The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
 #### Weak scaling (increase problem size, increase number of processors)
