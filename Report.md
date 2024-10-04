@@ -6,7 +6,7 @@
 1. Jeffrey Mitchell
 2. Ren Mai
 3. Brandon Cisneros
-4. Fourth
+4. Christiana Vancura
 
 ## 2. Project topic (e.g., parallel sorting algorithms)
 This project seeks to both implement and evaluate the similarities and differences between different parallel sorting algorithms with regards to problem size, problem type, and behavior regarding both strong and weak scaling. The parallel sorting algorithms chosen for the scope of this project include the following: bitonic, sample, merge, and radix sort.
@@ -15,7 +15,8 @@ This project seeks to both implement and evaluate the similarities and differenc
 
 #### Bitonic Sort:
 Bitonic sort assumes an imput size that is a power of 2. This algorithm uses many different processors as a network of comparators in order to sort a sequence. This algorithm must first ensure that data is in a bitonic sequence before sorting. A sequence of numbers is bitonic if it consists of a first substring of strictly non-decreasing numbers, followed by a substring of strictly non-increasing numbers. Once a bitonic sequence is generated, the algorithm can then merge the sequence into a fully sorted list. This can be repeated at scale to sort large sequences. To implement this sorting algorithm, we will be using the MPI architecture.
-- Sample Sort:
+#### Sample Sort:
+Sample sort does not assume any input size, but will split the input into p (the number of processors) buckets. Thus it will be easier to use inputs of size powers of 2. The algorithm splits the initial input into p sections, sorts them using quicksort, and samples s elements from each. These samples are then sorted, and p-1 elements are chosen as splitters. The total input is then split into p buckets, which are sorted using bucket sort by each processor. We will be using MPI architecture to implement sample sort.
 - Merge Sort:
 #### Radix Sort:
 Radix sort assumes that the input elements of the problem statement are k digit numbers. The algorithm sorts the elements through means of buckets; by sorting elements by their digits, Radix Sort is able to linearly sort elements as it sorts from least to most significant digit. For the sake of this sorting algorithm, we will be using the MPI architecture.
