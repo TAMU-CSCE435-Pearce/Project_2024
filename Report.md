@@ -21,6 +21,8 @@ The main method of communication for this group project will be through Slack.
     Sample sort sorts datasets by following steps. First, random samples are selected and sorted to create defined buckets. Next, elements from the original dataset are assigned to these buckets based on their values, and each bucket is then sorted independently. Finally, the sorted buckets are merged to produce the fully sorted dataset.
 
 - Merge Sort:
+    First, each processor sequentially sorts its data. Then, arrays are merged 2 at a time, keeping them sorted. This continues until all data is merged into one array.
+
 - Radix Sort:
 
 ### 2b. Pseudocode for each parallel algorithm
@@ -66,6 +68,30 @@ else if worker_process:
     Tournament Merge with Adacent Processes
     Send Sorted Array to Master Process
 ```
+
+#### Merge Sort
+'''
+Main:
+    Perform sequential sort on each processor
+
+    merging_arrays = 2
+    p = processor rank
+
+    while merging_arrays <= num_procs:
+        if p % merging_arrays == 0:
+            receive from (p + (merging_arrays/2))
+            mergeArrays
+        if p % merging_arrays == merging_arrays/2:
+            send to (p - (merging_arrays/2))
+        merging_arrays *= 2
+
+mergeArrays:
+	while there are elements unadded in both input arrays:
+		append smallest element from input arrays to output array
+		advance past element added
+	Append remaining elements from one array
+	Return output array
+'''
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input sizes, Input types
