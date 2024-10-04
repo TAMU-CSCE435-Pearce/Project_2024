@@ -14,7 +14,8 @@ For primary communication we will utilize a text message group chat.
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 ### need to complete
 
-- Bitonic Sort: 
+- Bitonic Sort: Bitonic sort is a recursive sorting algorithm which sorts bitonic sequences by comparing and swapping sections of the of the array in a predefined order. A bitonic sequence is a sequence that is strictly increasing, then decreasing. At each stage of the sort a portion
+of the sequence is swapped and then remerged into a larger portion of the sequence.
 - Sample Sort:
 - Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
