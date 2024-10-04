@@ -15,7 +15,7 @@ For primary communication we will utilize a text message group chat.
 ### need to complete
 
 - Bitonic Sort: 
-- Sample Sort:
+- Sample Sort: Sample sort is a divide-and-conquer algorithm similar to how quicksort partitions its input into two parts at each step revolved around a singluar pivot value, but what makes sample sort unique is that it chooses a large amount of pivot values and partitions the rest of the elements on these pivots and sorts all these partitions.
 - Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
 
@@ -23,7 +23,6 @@ For primary communication we will utilize a text message group chat.
 ### need to complete
 
 - For MPI programs, include MPI calls you will use to coordinate between processes
-
 
 - Radix Sort Pseudocode
 
