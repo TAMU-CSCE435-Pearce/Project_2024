@@ -15,11 +15,54 @@ The topic of this project is the implementation, evaluation, and analysis of var
 
 - Bitonic Sort:
 - Sample Sort:
+    Sample sort efficiently sorts large datasets by following these steps.  First, random samples are selected and sorted to create defined buckets. Next, elements from the original dataset are assigned to these buckets based on their values. Each bucket is then sorted independently. Finally, the sorted buckets are merged to produce the fully sorted dataset.
+
 - Merge Sort:
 - Radix Sort:
 
 ### 2b. Pseudocode for each parallel algorithm
-- For MPI programs, include MPI calls you will use to coordinate between processes
+
+#### Sample Sort
+```
+p = Number of Processes 
+array = Array for Problem Type 
+n = Problem Size
+
+if master_process:
+
+    b = n / p 
+    
+    for index in range(p):
+        start = index * b; 
+        end = (index + 1) * b 
+        
+        Send Array Segment array[start:end] to Worker Processes
+
+    Recieve p * (p - 1) Splitter Candidates from all Worker Processes
+
+    Sort Splitter Candidate
+    Choose p - 1 "Good" Splitters
+
+    Send Splitters to all Worker Processes
+    Recieve Sorted Array
+
+else if worker_process: 
+
+    Recieve Array Segment from Master Process
+
+    Sort Array Segment
+    Choose p - 1 Splitter Candidates from the Array Segment
+
+    Send p - 1 Splitter Candidates to Master Processes
+    Recieve Splitters from Master Process
+
+    Create Buckets based on Splitters
+    Partition Array Segment into Buckets based on Splitters
+    Sort Buckets
+
+    Tournament Merge with Adacent Processes
+    Send Sorted Array to Master Process
+```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input sizes, Input types
