@@ -70,7 +70,7 @@ else if worker_process:
 ```
 
 #### Merge Sort
-'''
+```
 Main:
     Perform sequential sort on each processor
 
@@ -91,7 +91,7 @@ mergeArrays:
 		advance past element added
 	Append remaining elements from one array
 	Return output array
-'''
+```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input sizes, Input types
