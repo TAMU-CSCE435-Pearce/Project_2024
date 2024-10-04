@@ -24,6 +24,109 @@ For primary communication we will utilize a text message group chat.
 
 - For MPI programs, include MPI calls you will use to coordinate between processes
 
+- Merge Sort Pseudocode
+- Inputs is your global array
+
+main() {
+    // Initialize an unsorted array (arr)
+    arr = unsorted array;
+
+    // Variables to track rank and number of processes
+    int world_rank;
+    int world_size;
+
+    // Initialize MPI
+    MPI_INIT();
+
+    // Get current process rank
+    MPI_COMM_RANK(MPI_COMM_WORLD, &world_rank);
+
+    // Get total number of processes
+    MPI_COMM_SIZE(MPI_COMM_WORLD, &world_size);
+
+    // Divide array into equal-sized chunks
+    int size = size_of_array / world_size;
+
+    // Allocate space for each process's sub-array (subArr)
+    subArr = allocate array of size 'size'
+
+    // Scatter the array across processes
+    MPI_Scatter(arr, size, subArr);
+
+    // Each process performs mergeSort on its sub-array
+    mergeSort(subArr);
+
+    // Gather the sorted sub-arrays at root process (world_rank == 0)
+    MPI_Gather(subArr, size, sorted_arr);
+
+    // Root process merges the sorted sub-arrays into a final sorted array
+    if(world_rank == 0) {
+        mergeSort(sorted_arr);
+    }
+
+    // Finalize MPI
+    MPI_Finalize();
+}
+
+mergeSort(arr) {
+    // Base case: If array has only one element, it is already sorted
+    if left < right {
+        // Find the midpoint of the array
+        mid = (left + right) / 2;
+
+        // Recursively sort the left half of the array
+        mergeSort(left half of arr);
+
+        // Recursively sort the right half of the array
+        mergeSort(right half of arr);
+
+        // Merge the two sorted halves
+        merge(arr, left, mid, right);
+    }
+}
+
+merge(arr, left, mid, right) {
+    // Allocate a temporary array to store the merged result
+    tempArr = temporary array of size (right - left + 1)
+
+    // Initialize pointers for the left and right halves
+    left_pointer = left;
+    right_pointer = mid + 1;
+    temp_pointer = left;
+
+    // While both halves have elements
+    while left_pointer <= mid AND right_pointer <= right {
+        if arr[left_pointer] <= arr[right_pointer] {
+            // Add the smaller element from the left half to tempArr
+            tempArr[temp_pointer] = arr[left_pointer];
+            left_pointer++;
+        } else {
+            // Add the smaller element from the right half to tempArr
+            tempArr[temp_pointer] = arr[right_pointer];
+            right_pointer++;
+        }
+        temp_pointer++;
+    }
+
+    // Copy any remaining elements from the left half
+    while left_pointer <= mid {
+        tempArr[temp_pointer] = arr[left_pointer];
+        left_pointer++;
+        temp_pointer++;
+    }
+
+    // Copy any remaining elements from the right half
+    while right_pointer <= right {
+        tempArr[temp_pointer] = arr[right_pointer];
+        right_pointer++;
+        temp_pointer++;
+    }
+
+    // Copy the merged elements from tempArr back to arr
+    for i = left to right {
+        arr[i] = tempArr[i];
+    }
+}
 
 - Radix Sort Pseudocode
 - Inputs is your global array
