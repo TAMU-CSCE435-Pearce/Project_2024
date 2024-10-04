@@ -12,16 +12,76 @@
 We will implement and analyze the effectiveness of four parallel sorting algorithms. In our project we will implement bitonic, sample, merge, and radix sorts. We will compare overall sorting times between processes, efficiency with limited number of cores, and compare and contrast various edge cases to find maximum and minimum times for all sorting algorithms. 
 For primary communication we will utilize a text message group chat.    
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
+### need to complete
+
 - Bitonic Sort: 
-- Sample Sort:
+- Sample Sort: Sample sort is a divide-and-conquer algorithm similar to how quicksort partitions its input into two parts at each step revolved around a singluar pivot value, but what makes sample sort unique is that it chooses a large amount of pivot values and partitions the rest of the elements on these pivots and sorts all these partitions.
 - Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
 
 ### 2b. Pseudocode for each parallel algorithm
-- Merge Sort Pseudocode
-    - Inputs is your global array
+### need to complete
 
-```c
+- For MPI programs, include MPI calls you will use to coordinate between processes
+- Sample Sort Pseudocode
+// Initialization
+arr = input array
+MPI_Init();
+int num_proc, rank;
+MPI_COMM_RANK(MPI_COMM_WORLD, &rank)
+MPI_COMM_SIZE(MPI_COMM_WORLD, &num_proc)
+size = arr / num_proc
+// Distribute data
+if (rank == 0) {
+    localArr = arr with 'size' amount of elements
+    MPI_Scatter(arr, size, localArr)
+}
+// Local Sort on each Processor
+sampleSort(localArr[rank])
+
+// Sampling
+sample_size = num_proc - 1
+samples = select_samples(localArr[rank], sample_size)
+
+// Gather samples on root
+MPI_Gather(localArr, size, sortedArr)
+if (rank == 0) {
+    sorted_samples = SampleSort(sortedArr)
+    pivots = Choose_Pivots(sorted_samples, num_proc - 1)
+}
+
+// Broadcast
+MPI_Bcast(&pivots, size, MPI_INT, root, MPI_COMM_WORLD);
+
+// Redistribute data according to pivots
+send_counts, recv_counts, send_displacements, recv_displacements = arr size num_proc
+for(int i = 0; i < size; i++) {
+    for(int j = 0; j < num_proc; j++) {
+        if(localArr[rank][i] <= pivots[j])
+            send_data_to_processor(j)
+    }
+}
+
+// Perform All-to-All communication
+MPI_Alltoall(send_counts, send_displacements, recv_counts, recv_displacements)
+
+// Local sort again after redistribution
+sampleSort(localArr[rank])
+
+// Gather sorted subarrays
+MPI_Gather(localArr[rank], size, gatherSortedArr)
+
+// Final merge at root processor
+if (rank == 0)
+    sampleSort(gatherSortedArr)
+
+// Finalize MPI
+MPI_Finalize();
+
+
+- Merge Sort Pseudocode
+- Inputs is your global array
+
 main() {
     // Initialize an unsorted array (arr)
     arr = unsorted array;
@@ -62,9 +122,7 @@ main() {
     // Finalize MPI
     MPI_Finalize();
 }
-```
 
-```c
 mergeSort(arr) {
     // Base case: If array has only one element, it is already sorted
     if left < right {
@@ -81,8 +139,7 @@ mergeSort(arr) {
         merge(arr, left, mid, right);
     }
 }
-```
-```c
+
 merge(arr, left, mid, right) {
     // Allocate a temporary array to store the merged result
     tempArr = temporary array of size (right - left + 1)
@@ -125,69 +182,40 @@ merge(arr, left, mid, right) {
         arr[i] = tempArr[i];
     }
 }
-```
+
 - Radix Sort Pseudocode
-    - Inputs is your global array
+- Inputs is your global array
 
-```c
-main() {
-// Initialize MPI
-MPI_Init(&argc, &argv);
 
-// Get number of processes and the current rank
+MPI_Init()
+
 MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-// Total number of elements in the array
-total_elements = get_total_elements();
+if(rank == 0) {
+    maxVal = find_max(global_array)
+    maxDigits = calculate_num_digits(maxVal)
+}
+MPI_Bcast(&maxDigits, 1, MPI_INT, root, MPI_COMM_WORLD);
 
-// Calculate the number of elements each process will handle
-elements_per_proc = total_elements / num_procs;
 
-// Scatter the input array to each process
-MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+MPI_SCATTER(global_array, localArray)//split the array amongst the different processes
+for(digit =0; digit < maxDigits; digit++) {
+    //put each array subsection in buckets based on current digit
+    local_count = count_digits(local_array, digit)
 
-// Get the maximum number to determine the number of digits (if rank 0)
-if (rank == 0) {
-    max_value = find_max(global_array);
+    //figure out the offet for each value
+    for(i = 1; i < len(count_arr); i++)
+        count_arr[i] =+ count_arr[i-1]
+    
+    MPI_GATHER()
+    MPI_BCAST
+    MPI_SCATTER()
 }
 
-// Broadcast the max_value to all processes
-MPI_Bcast(&max_value, 1, MPI_INT, root, MPI_COMM_WORLD);
 
-// Calculate the number of digits in the maximum value
-num_digits = calculate_num_digits(max_value);
-
-for (digit = 0; digit < num_digits; digit++) {
-    // Each process performs a counting sort on its local data for the current digit
-    local_count = counting_sort_on_digit(local_array, digit);
-
-    // Gather all the local arrays at root (process 0)
-    MPI_Gather(local_array, elements_per_proc, MPI_INT, global_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        // Process 0 performs a global sort based on the gathered data
-        global_count = counting_sort_on_digit(global_array, digit);
-    }
-
-    // Broadcast the globally sorted array back to all processes for the next digit iteration
-    MPI_Bcast(global_array, total_elements, MPI_INT, root, MPI_COMM_WORLD);
-
-    // Scatter the globally sorted array back to local arrays
-    MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
-}
-
-// After all digits are processed, process 0 has the fully sorted array
-if (rank == 0) {
-    print_sorted_array(global_array);
-}
-
-// Finalize MPI
-MPI_Finalize();
-}
-```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 We will be working through arrays of sizes 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28. We will test the sorting speed of presorted, randomly sorted, reverse sorted, and 1% perturbed. 
 
-We will also test the all of these with increasing processors in range 2, 4, 8 ,16, 32, 64, 128, 256, 512, and 1024. At the end we will have run 280 sorts one for each array size with each array type and each processor count. This will allow us to analyze and understand the advantages and disadvantages of all sorting algorithms tested.
+We will also test the all of these with increasing processors in range 2, 4, 8, 16, 32, 64, 128, 256, 512, and 1024. At the end we will have run 280 sorts one for each array size with each array type and each processor count. This will allow us to analyze and understand the advantages and disadvantages of all sorting algorithms tested.
