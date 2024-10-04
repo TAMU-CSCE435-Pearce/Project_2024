@@ -130,31 +130,61 @@ merge(arr, left, mid, right) {
     - Inputs is your global array
 
 ```c
-MPI_Init();
+main() {
+// Initialize MPI
+MPI_Init(&argc, &argv);
 
+// Get number of processes and the current rank
 MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-if(rank == 0) {
-    maxVal = find_max(global_array);
-    maxDigits = calculate_num_digits(maxVal);
-}
-MPI_Bcast(&maxDigits, 1, MPI_INT, root, MPI_COMM_WORLD);
+// Total number of elements in the array
+total_elements = get_total_elements();
 
-MPI_Scatter(global_array, localArray); // split the array amongst the different processes
-for(digit = 0; digit < maxDigits; digit++) {
-    // put each array subsection in buckets based on current digit
-    local_count = count_digits(local_array, digit);
+// Calculate the number of elements each process will handle
+elements_per_proc = total_elements / num_procs;
 
-    // figure out the offset for each value
-    for(i = 1; i < len(count_arr); i++)
-        count_arr[i] += count_arr[i-1];
-    
-    MPI_Gather();
-    MPI_Bcast();
-    MPI_Scatter();
+// Scatter the input array to each process
+MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+
+// Get the maximum number to determine the number of digits (if rank 0)
+if (rank == 0) {
+    max_value = find_max(global_array);
 }
+
+// Broadcast the max_value to all processes
+MPI_Bcast(&max_value, 1, MPI_INT, root, MPI_COMM_WORLD);
+
+// Calculate the number of digits in the maximum value
+num_digits = calculate_num_digits(max_value);
+
+for (digit = 0; digit < num_digits; digit++) {
+    // Each process performs a counting sort on its local data for the current digit
+    local_count = counting_sort_on_digit(local_array, digit);
+
+    // Gather all the local arrays at root (process 0)
+    MPI_Gather(local_array, elements_per_proc, MPI_INT, global_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        // Process 0 performs a global sort based on the gathered data
+        global_count = counting_sort_on_digit(global_array, digit);
+    }
+
+    // Broadcast the globally sorted array back to all processes for the next digit iteration
+    MPI_Bcast(global_array, total_elements, MPI_INT, root, MPI_COMM_WORLD);
+
+    // Scatter the globally sorted array back to local arrays
+    MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+}
+
+// After all digits are processed, process 0 has the fully sorted array
+if (rank == 0) {
+    print_sorted_array(global_array);
+}
+
+// Finalize MPI
 MPI_Finalize();
+}
 ```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
