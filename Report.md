@@ -16,7 +16,7 @@ For primary communication we will utilize a text message group chat.
 
 - Bitonic Sort: 
 - Sample Sort:
-- Merge Sort:
+- Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
 
 ### 2b. Pseudocode for each parallel algorithm
