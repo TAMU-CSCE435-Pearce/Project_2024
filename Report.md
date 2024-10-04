@@ -11,11 +11,14 @@
 ## 2. Project topic (e.g., parallel sorting algorithms)
 The topic of this project is the implementation, evaluation, and analysis of various parallel sorting algorithms and how they will behave in various situations with differing problems sizes, number of available processors, and levels of sorting completion.
 
+## 3. Communication
+The main method of communication for this group project will be through Slack.
+
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 
 - Bitonic Sort:
 - Sample Sort:
-    Sample sort efficiently sorts large datasets by following these steps.  First, random samples are selected and sorted to create defined buckets. Next, elements from the original dataset are assigned to these buckets based on their values. Each bucket is then sorted independently. Finally, the sorted buckets are merged to produce the fully sorted dataset.
+    Sample sort sorts datasets by following steps. First, random samples are selected and sorted to create defined buckets. Next, elements from the original dataset are assigned to these buckets based on their values, and each bucket is then sorted independently. Finally, the sorted buckets are merged to produce the fully sorted dataset.
 
 - Merge Sort:
 - Radix Sort:
