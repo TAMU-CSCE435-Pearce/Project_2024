@@ -116,7 +116,7 @@ else if master process:
 ### 2c. Evaluation plan - what and how will you measure and compare
 #### Input sizes, Input types
 #### Strong scaling
-The stong scaling potential of an algorithm can be analyzed by keeping the problem size fixed, while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
+The stong scaling potential of an algorithm can be analyzed by keeping the problem size fixed, while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. We will increase processor count progressively, testing powers of two for their performance (2, 4, 8, 16 processors, etc.). The actual problem size will be decided based on benchmarking a small processor count in order to ensure that jobs can complete on a reasonable timescale (hours at most). The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
 #### Weak scaling (increase problem size, increase number of processors)
 
 ### 2d. How the team will communicate:
