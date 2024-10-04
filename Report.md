@@ -69,5 +69,9 @@ else if worker_process:
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input sizes, Input types
+
+    Input Sizes: 2^10 to 2^20
+    Input Types: Sorted, Sorted with 1% Perturbed, Random, Reverse Sorted
+
 - Strong scaling (same problem size, increase number of processors/nodes)
 - Weak scaling (increase problem size, increase number of processors)
