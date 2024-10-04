@@ -17,7 +17,21 @@ This project seeks to both implement and evaluate the similarities and differenc
 Bitonic sort assumes an imput size that is a power of 2. This algorithm uses many different processors as a network of comparators in order to sort a sequence. This algorithm must first ensure that data is in a bitonic sequence before sorting. A sequence of numbers is bitonic if it consists of a first substring of strictly non-decreasing numbers, followed by a substring of strictly non-increasing numbers. Once a bitonic sequence is generated, the algorithm can then merge the sequence into a fully sorted list. This can be repeated at scale to sort large sequences. To implement this sorting algorithm, we will be using the MPI architecture.
 #### Sample Sort:
 Sample sort does not assume any input size, but will split the input into p (the number of processors) buckets. Thus it will be easier to use inputs of size powers of 2. The algorithm splits the initial input into p sections, sorts them using quicksort, and samples s elements from each. These samples are then sorted, and p-1 elements are chosen as splitters. The total input is then split into p buckets, which are sorted using bucket sort by each processor. We will be using MPI architecture to implement sample sort.
-- Merge Sort:
+
+#### Merge Sort:
+Merge sort works by repeatedly merging larger and larger sorted subsets of an array.
+It is not confined to particular input array sizes, and as a comparison-based sorting algorithm,
+it can operate on any comparable data type. Merge sort is a divide and conquer algorithm.
+In its base case, a subarray of length 0 or 1 is already sorted, and at each step, merge sort
+merges two sorted arrays by stepping through them and popping the smallest remaining element from
+either. In a parallel environment, each of the `p` nodes will sort itself normally, then will
+cooperate to continue the merges across process boundaries, until the array is fully sorted.
+For the first layer, odd and even processes will merge with each other, with the odd processes
+taking the higher halfs of each pair's array elements. The processes will then sort themselves
+into sets of four and use three 2-way merges to generate consistency among the four processors.
+The number of processes per group will continue doubling until the full composite array is sorted.
+Our implementation will use the MPI architecture.
+
 #### Radix Sort:
 Radix sort assumes that the input elements of the problem statement are k digit numbers. The algorithm sorts the elements through means of buckets; by sorting elements by their digits, Radix Sort is able to linearly sort elements as it sorts from least to most significant digit. For the sake of this sorting algorithm, we will be using the MPI architecture.
 
