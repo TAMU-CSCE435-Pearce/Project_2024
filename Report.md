@@ -29,28 +29,22 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 - Inputs is your global array
 
 // Bitonic Merge
-void bitonicMerge(data, low, count, direction) {
-    if (count > 1) {
+bitonicMerge(data, low, count, direction)
+    if (count > 1)
         int k = count / 2;
-        for (int i = low; i < low + k; ++i) {
-            if ((data[i] > data[i + k]) == direction) {
+        for (int i = low; i < low + k; ++i)
+            if ((data[i] > data[i + k]) == direction)
                 std::swap(data[i], data[i + k]);
-            }
-        }
         bitonicMerge(data, low, k, direction);
         bitonicMerge(data, low + k, k, direction);
-    }
-}
 
 // Bitonic Sort (sequential on local data)
-void bitonicSort(data, low, count, direction) {
-    if (count > 1) {
+bitonicSort(data, low, count, direction)
+    if (count > 1)
         int k = count / 2;
         bitonicSort(data, low, k, true);  // Sort in ascending order
         bitonicSort(data, low + k, k, false);  // Sort in descending order
         bitonicMerge(data, low, count, direction);
-    }
-}
 
 main() {
     //Initialize array and MPI
@@ -74,7 +68,7 @@ main() {
     bitonicSort(subarray, 0, localSize, true);
 
     // Perform parallel bitonic sorting
-    for (int phase = 1; phase <= size; ++phase) {
+    for (int phase = 1; phase <= size; ++phase)
         int partner = rank ^ (1 << (phase - 1));  // Find partner using bitwise XOR
 
         // Exchange data with partner process
@@ -84,18 +78,16 @@ main() {
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         // Merge received data with local data
-        if (rank < partner) {
+        if (rank < partner)
             // Ascending order
             subarray.insert(subarray.end(), dataReceived.begin(), dataReceived.end());
             bitonicMerge(subarray, 0, subarray.size(), true);
             subarray.resize(localSize);  // Keep only first half
-        } else {
+        else
             // Descending order
             subarray.insert(subarray.end(), dataReceived.begin(), dataReceived.end());
             bitonicMerge(subarray, 0, subarray.size(), false);
             subarray.resize(localSize);  // Keep only second half
-        }
-    }
 
     // Gather the sorted subarrays at root process
     MPI_Gather(subarray, localSize, MPI_INT, arr, localSize, MPI_INT, 0, MPI_COMM_WORLD);
