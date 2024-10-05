@@ -96,6 +96,8 @@ else if master process:
 - `MPI_Recv(...)`
 - `MPI_Comm_split(...)`
 - `MPI_Gather(...)`
+- `MPI_Scatter(...)`
+- `MPI_Allgather(...)`
 - `MPI_Finalize(...)`
 - `MPI_Barrier(...)`
 ##### Pseudocode
@@ -104,16 +106,24 @@ else if master process:
 split initial array into subarrays
 for each process
     sort each subarray using quicksort
-    send process 0 `s` elements
-process 0 sorts `s` elements with quicksort
-chooses `p-1` splitters
-sends splitters to all processes
+    send process 0 `s` elements (MPI_Send)
+barrier (MPI_Barrier)
+process 0 receives `s` elements (MPI_Gather)
+process 0 sorts elements with quicksort
+process 0 chooses `p-1` splitters
+process 0 sends splitters to all processes (MPI_Scatter)
 for each process
+    receive splitters (MPI_Receive)
     from each subarray split on splitters into `p` buckets
-    send bucket 0 to process 0, bucket 1 to process 1, ... , bucket `p-1` to process `p-1`
-    barrier
-    bucket sort received buckets - combine
-reutrn sorted bucket 0, bucket 1, ..., bucket `p-1`
+    send bucket 0 to process 0, bucket 1 to process 1, ... , bucket `p-1` to process `p-1` (MPI_Scatter)
+    barrier (MPI_Barrier)
+    processes receive buckets (MPI_Allgather)
+    bucket sort received buckets
+    send received buckets to process 0 (MPI_Send)
+process 0 receives and concatenates buckets (MPI_Gather) 
+process 0 returns sorted bucket 0, bucket 1, ..., bucket `p-1`
+
+```
 
 #### Merge Sort:
 
