@@ -47,7 +47,7 @@ main() {
   MPI_Scatter(a, n_each, MPI_INT, local_data, n_each, MPI_INT, 0, MPI_COMM_WORLD) // scatter an equal amount of the data among all processes
 
   // Sort this processes data in UP direction
-  local_bitonic_up(local_data, n_each)
+  bitonic_up(local_data, n_each)
 
   // Parallel sort
   log_numtasks = log_2(numtasks)
@@ -90,59 +90,6 @@ main() {
   }
 
   MPI_Finalize()
-}
-
-local_bitonic_up(array[], n) {
-  for (k = 2; k <= size; k *= 2) {
-    for (j = k / 2; j >= 1; j /= 2) {
-      for (i = 0; i < size; i++) {
-        ixj = i ^ j
-        if ixj > i and array[i] > array[ixj] {
-          swap(array[i], array[ixj])
-        }
-      }
-    }
-  }
-}
-
-merge(a[], b[], direction, n_each) {
-  i, j, k = 0
-  result = empty array of size n_each * 2
-
-  while i < n_each && j < n_each {
-    if direction == UP {
-      if a[i] <= b[j] {
-        result[k] = a[i]
-        i++
-      } else {
-        result[k] = b[j]
-        j++
-      }
-    } else { // Merge in reverse
-      if a[i] >= b[j] {
-        result[k] = a[i]
-        i++
-      } else {
-        result[k] = b[j]
-        j++
-      }
-    }
-    k++
-  }
-
-  while i < n_each {
-    result[k] = a[i]
-    i++
-    k++
-  }
-
-  while j < n_each {
-    result[k] = b[j]
-    j++
-    k++
-  }
-
-  return result
 }
 ```
 
