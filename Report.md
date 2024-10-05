@@ -17,7 +17,7 @@ The main method of communication for this group project will be through Slack.
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 
 - Bitonic Sort:
-  Each process is given an equal (or as close to equal as possible) amount of data which is sorted locally. The processes are then paired up in a network log_2(n) times and merged into bitonic sequences, until on the final merge they are merged into a sorted sequence.
+    Each process is given an equal (or as close to equal as possible) amount of data which is sorted locally. The processes are then paired up in a network log_2(n) times and merged into bitonic sequences, until on the final merge they are merged into a sorted sequence.
 
 - Sample Sort:
     Sample sort sorts datasets by following steps. First, random samples are selected and sorted to create defined buckets. Next, elements from the original dataset are assigned to these buckets based on their values, and each bucket is then sorted independently. Finally, the sorted buckets are merged to produce the fully sorted dataset.
@@ -26,6 +26,10 @@ The main method of communication for this group project will be through Slack.
     First, each processor sequentially sorts its data. Then, arrays are merged 2 at a time, keeping them sorted. This continues until all data is merged into one array.
 
 - Radix Sort:
+    Radix sort sorts arrays of numbers by comparing them digit-by-digit. It begins
+    with the least significant digit, and groups numbers into buckets based on 
+    their current digit. This process repeats for all digits, until the number 
+    with the most digits is fully sorted across all processes.
 
 ### 2b. Pseudocode for each parallel algorithm
 
@@ -139,7 +143,7 @@ main() {
 
   MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-
+    
   if numtasks is not a power of 2:
     return 1
 
@@ -198,6 +202,50 @@ main() {
   MPI_Finalize()
 }
 ```
+
+#### Radix Sort
+```
+p = number of processes
+array = inputted array to be sorted
+n = problem size
+max_digit = maximum number of digits in largest number
+
+id = Process ID
+master_process = 0
+worker_processes = [1, 2, 3, ..., p - 1]
+
+if id == master_process:
+    chunk_size = n / p
+    for index, process in worker_processes:
+        start = index * chunk_size
+        end = (index + 1) * chunk_size
+        Send(array[start:end], to=process)
+
+else if id is in worker_process:
+    local_array = Receive(from=master_process)
+    
+    for exp in range(1, max_digit):
+
+        buckets = ten empty arrays inside a big array
+        for number in local_array:
+            digit = (number // exp) % 10
+            buckets[digit].append(number)
+        
+        for i in range(10):
+            Send(buckets[i], to=all_other_processes)
+            Receive(buckets[i], from=all_other_processes)
+        
+        local_array = concatenate(buckets)
+    
+    Send(local_array, to=master_process)
+
+if id == master_process:
+    for process in worker_processes:
+        sorted_chunk = Receive(from=process)
+        Append sorted_chunk to the final sorted array
+
+```
+
 
 ### 2c. Evaluation plan - what and how will you measure and compare
 - Input Sizes, Input Types, Processes
