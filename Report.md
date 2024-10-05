@@ -1,6 +1,8 @@
 # CSCE 435 Group project
 
+
 ## 0. Group number: 23
+
 
 ## 1. Group members:
 1. Jeffrey Mitchell
@@ -8,15 +10,18 @@
 3. Brandon Cisneros
 4. Christiana Vancura
 
+
 ## 2. Project topic (e.g., parallel sorting algorithms)
 This project seeks to both implement and evaluate the similarities and differences between different parallel sorting algorithms with regards to problem size, problem type, and behavior regarding both strong and weak scaling. The parallel sorting algorithms chosen for the scope of this project include the following: bitonic, sample, merge, and radix sort.
+
 
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 
 #### Bitonic Sort:
-Bitonic sort assumes an imput size that is a power of 2. This algorithm uses many different processors as a network of comparators in order to sort a sequence. This algorithm must first ensure that data is in a bitonic sequence before sorting. A sequence of numbers is bitonic if it consists of a first substring of strictly non-decreasing numbers, followed by a substring of strictly non-increasing numbers. Once a bitonic sequence is generated, the algorithm can then merge the sequence into a fully sorted list. This can be repeated at scale to sort large sequences. To implement this sorting algorithm, we will be using the MPI architecture.
+Bitonic sort assumes an input size that is a power of 2. This algorithm uses many different processors as a network of comparators in order to sort a sequence. This algorithm must first ensure that data is in a bitonic sequence before sorting. A sequence of numbers is bitonic if it consists of a first substring of strictly non-decreasing numbers, followed by a substring of strictly non-increasing numbers. Once a bitonic sequence is generated, the algorithm can then merge the sequence into a fully sorted list. This can be repeated at scale to sort large sequences. To implement this sorting algorithm, we will be using the MPI architecture.
+
 #### Sample Sort:
-Sample sort does not assume any input size, but will split the input into p (the number of processors) buckets. Thus it will be easier to use inputs of size powers of 2. The algorithm splits the initial input into p sections, sorts them using quicksort, and samples s elements from each. These samples are then sorted, and p-1 elements are chosen as splitters. The total input is then split into p buckets, which are sorted using bucket sort by each processor. We will be using MPI architecture to implement sample sort.
+Sample sort does not assume any input size, but will split the input into p (the number of processors) buckets. Thus it will be easier to use inputs of size powers of 2. The algorithm splits the initial input into p sections, sorts them using quicksort, and samples s elements from each. These samples are then sorted (again using quicksort), and p-1 elements are chosen as splitters. Each processor splits its input bucket based on the splitters and sends the resultant buckets to the corresponding processor (bucket 0 to 0, 1 to 1, and so on). The total input is thus split into p buckets, which are sorted using bucket sort by each processor. These are then combined to return a sorted list. We will be using MPI architecture to implement sample sort.
 
 #### Merge Sort:
 Merge sort works by repeatedly merging larger and larger sorted subsets of an array.
@@ -36,9 +41,9 @@ Our implementation will use the MPI architecture.
 Radix sort assumes that the input elements of the problem statement are k digit numbers. The algorithm sorts the elements through means of buckets; by sorting elements by their digits, Radix Sort is able to linearly sort elements as it sorts from least to most significant digit. For the sake of this sorting algorithm, we will be using the MPI architecture.
 
 
-
 ### 2b. Pseudocode for each parallel algorithm
 - For MPI programs, include MPI calls you will use to coordinate between processes
+
 #### Bitonic Sort:
 ##### MPI calls used to coordinate between processes:
 - `MPI_Init(...)`
@@ -52,7 +57,7 @@ Radix sort assumes that the input elements of the problem statement are k digit 
 - `MPI_Finalize(...)`
 - `MPI_Barrier(...)`
 ##### Pseudocode
-```txt
+```C
 if worker process:
     receive subarray
 
@@ -101,8 +106,7 @@ else if master process:
 - `MPI_Finalize(...)`
 - `MPI_Barrier(...)`
 ##### Pseudocode
-```txt
-
+```C
 split initial array into subarrays
 for each process
     sort each subarray using quicksort
@@ -133,7 +137,6 @@ process 0 returns sorted bucket 0, bucket 1, ..., bucket `p-1`
 - `MPI_Send(...)`
 - `MPI_Recv(...)`
 - `MPI_Finalize(...)`
-
 ##### Pseudocode
 ```C
 // Sort a fully-local array with standard merge sort:
@@ -326,6 +329,7 @@ if worker process:
     MPI_Recv(...) items and their indices and place into correct offset location
 ```
 
+
 ### 2c. Evaluation plan - what and how will you measure and compare
 ____
 
@@ -351,14 +355,16 @@ Input types utilized in the project will take the following configurations:
     - The array passed in as input is sorted, but uses the opposite order. 
     - *(e.g. If we are sorting descending, the reverse sorted array will be ascending and vice versa)*
 - 1% Perturbed
-    - The array is mostly sorted, with 1% of array items being swapped or placed in unsorted position.
+    - The array is mostly sorted, with 1% of array items being swapped or placed in unsorted positions.
 
 ##### Number of Processes used:
 For the sake of this project, the number of processes being tested will also be done using powers of two. More specifically, the process counts utilized in runs will include the following process counts: 2, 4, 8, 16, 32, 64, 128, 256, 512, and 1024.
 
 #### Strong scaling
-The stong scaling potential of an algorithm can be analyzed by keeping the problem size fixed, while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. We will increase processor count progressively, testing powers of two for their performance (2, 4, 8, 16 processors, etc.). The actual problem size will be decided based on benchmarking a small processor count in order to ensure that jobs can complete on a reasonable timescale (hours at most). The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
+The strong scaling potential of an algorithm can be analyzed by keeping the problem size fixed while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. We will increase processor count progressively, testing powers of two for their performance (2, 4, 8, 16 processors, etc.). The actual problem size will be decided based on benchmarking a small processor count in order to ensure that jobs can complete on a reasonable timescale (hours at most). The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
+
 #### Weak scaling (increase problem size, increase number of processors)
 
+
 ### 2d. How the team will communicate:
-- For the sake of this project, the team has decided to go forward with using Slack as main form of communication, with periodic in-person meetings for discussion and implementation of the algorithms at hand.
+- For the sake of this project, the team has decided to go forward with using Slack as the main form of communication, with periodic in-person meetings for discussion and implementation of the algorithms at hand.
