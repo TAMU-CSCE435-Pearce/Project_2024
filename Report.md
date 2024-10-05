@@ -1,29 +1,140 @@
 # CSCE 435 Group project
 
 ## 0. Group number: 
+5
 
 ## 1. Group members:
-1. First
-2. Second
-3. Third
-4. Fourth
+1. Amine Sakrout
+2. Amol Gupta
+3. Quenton Hua
+4. Mohsin Khan
+5. Oreoluwa Ogunleye-Olawuyi
+
+
+### 1a. Communication
+We will be working together using Discord and text to ensure everyone is up to date and able to continue working on the assignment.
 
 ## 2. Project topic (e.g., parallel sorting algorithms)
 
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
 
 - Bitonic Sort:
-- Sample Sort:
-- Merge Sort:
+- Sample Sort: This algorithm splits up the dataset into smaller sample sizes and sorts these smaller groups using something like merge or quick sort. This sorting can be parallelized using OpenMPI to speed up this process. Once these groups are sorted they are merged together to yeild a fully sorted list.
+- Merge Sort (Quenton Hua): Merge Sort is a sorting algorithm that recursively divides a list into two halves, sorts each half, and merges the sorted halves to produce a sorted list. To parallelize Merge Sort with OpenMPI, the dataset will be divided into smaller chunks, each assigned to different processors. Each processor sorts its chunk independently which is then merged in parallel. 
 - Radix Sort:
+- Column Sort:
 
 ### 2b. Pseudocode for each parallel algorithm
 - For MPI programs, include MPI calls you will use to coordinate between processes
+- Bitonic Sort-
+```
+code
+```
+- Sample Sort-
+```
+def parallel_sample_sort()
+    initialize_parallel_environment()
+    
+    num_procs = get_num_processors()
+    rank = get_processor_rank()
+    
+    MPI_Init(&argc, &argv);
+    dataset = [provided data]
+    gathered_samples = gather_samples_from_all_processors(dataset) #Split data
+    if (rank == ROOT) {
+        splitters = select_splitters(gathered_samples, num_procs) #Split collected data among all processors
+    }
+    exchanged_data = parallel_merge_sort(splitters) #Sort individual samples on parallel processors using merge sort
+    local_sorted_data = merge_received_partitions(exchanged_data) #Combine results and sort
+
+    global_sorted_data = gather_sorted_data(local_sorted_data) #Clean up returned data
+
+return global_sorted_data
+
+```
+- Merge Sort-
+```
+code
+```
+- Radix Sort-
+```
+code
+```
+- Column Sort-
+```
+code
+```
+
+- Bitonic Sort:
+- Sample Sort: 
+- Merge Sort Pseudocode:
+```
+   Initialize MPI environment
+   MPI_Init()
+   Get rank of current process and the total num of processes
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank)
+   MPI_Comm_size(MPI_COMM_WORLD, &size)
+
+   Master process initializes the data array if rank == 0 (master process)
+   if rank == 0 THEN
+       Initialize the fullArray with N elements
+   end if 
+   Broadcast the size of the data (N) to all processes using MPI_Bcast
+   MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD)
+   Divide the data into chunks for each process
+   subArraySize = N / size
+   Allocate memory for subArray of size subArraySize
+   Use MPI_Scatter to distribute parts of the full array from the master process to each process
+   MPI_Scatter(fullArray, subArraySize, MPI_INT, subArray, subArraySize, MPI_INT, 0, MPI_COMM_WORLD)
+
+   Each process sorts its local sub-array using sequential Merge Sort
+   local_merge_sort(subArray, subArraySize)
+
+   Parallel merging like a tree:
+   step = 1
+   while step < size do
+       if rank % (2 * step) == 0 then
+           if rank + step < size then
+                  Receive the sorted sub-array from the neighboring process (rank + step)
+                  MPI_Recv(receive_buffer, subArraySize, MPI_INT, rank + step, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
+                  Merge the received sub-array with the local sub-array
+                  merged_array = merge(subArray, receive_buffer)
+                  Update the local sub-array with the merged result
+                  subArray = merged_array
+                  subArraySize = subArraySize * 2
+           end if 
+       else
+              Send the local sorted sub-array to the neighboring process (rank - step)
+              MPI_Send(subArray, subArraySize, MPI_INT, rank - step, 0, MPI_COMM_WORLD)
+
+              Exit loop once the array is sent
+              BREAK
+       end if
+       step = step * 2
+   end while
+
+   Gather all sorted subarrays at master using MPI_Gather
+   if rank == 0 then
+       MPI_Gather(subArray, subArraySize, MPI_INT, fullArray, subArraySize, MPI_INT, 0, MPI_COMM_WORLD)
+   end if 
+
+    Master process prints the fully sorted array
+    if rank == 0 THEN
+        print sorted fullArray
+    end if 
+
+    Finalize MPI environment
+    MPI_Finalize()
+  ```
+- Radix Sort:
+- Column Sort:
+
+
 
 ### 2c. Evaluation plan - what and how will you measure and compare
-- Input sizes, Input types
-- Strong scaling (same problem size, increase number of processors/nodes)
-- Weak scaling (increase problem size, increase number of processors)
+- Input sizes, Input types: We will use various input sizes to evaluate the performance of each parallel sorting algorithm. The input sizes will follow powers of two: `2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28`.
+- Strong scaling (same problem size, increase number of processors/nodes): We will measure **strong scaling** by fixing the input size and increasing the number of processors. We will evaluate how the runtime decreases as we increase the number of MPI processes from `2, 4, 8, 16, 32, 64, 128, 256, 512, to 1024` for the same input sizes. This will help us determine how well the algorithms use additional processors.
+- Weak scaling (increase problem size, increase number of processors): We will increase the problem size and the number of processors proportionally, aiming to keep the workload per processor constant. By comparing the runtimes as we increase both input size and number of processors, we can evaluate the algorithms' ability to handle larger datasets without increasing the per-processor workload.
 
 ### 3a. Caliper instrumentation
 Please use the caliper build `/scratch/group/csce435-f24/Caliper/caliper/share/cmake/caliper` 
