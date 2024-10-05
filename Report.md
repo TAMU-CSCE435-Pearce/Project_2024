@@ -31,40 +31,70 @@ p = Number of Processes
 array = Array for Problem Type 
 n = Problem Size
 
-if master_process:
+id = Process Identification
+
+master_process = 0
+worker_processes = [1, 2, 3, ..., p - 1]
+
+if id is master_process:
 
     b = n / p 
     
-    for index in range(p):
+    for index, process in worker_processes:
         start = index * b; 
         end = (index + 1) * b 
-        
-        Send Array Segment array[start:end] to Worker Processes
+        Send(array[start:end], to=process)
 
-    Recieve p * (p - 1) Splitter Candidates from all Worker Processes
+    candidates = []
+    for process in worker_processes:
+        candidate = Receive(from=process)
+        candidates.append(candidate)
+    candidates = Sort(candidates)
 
-    Sort Splitter Candidate
-    Choose p - 1 "Good" Splitters
+    splitters = ChooseSplitters(candidates, count=p-1)
+    for process in worker_processes:
+        Send(splitters, to=worker_processes)
+    
+    sample_sort = Receive(from=p-1) 
 
-    Send Splitters to all Worker Processes
-    Recieve Sorted Array
+else if id is in worker_process: 
 
-else if worker_process: 
+    segment = Receive(from=master_process)
+    segment = Sort(segment)
+    
+    candidates = ChooseCandidates(segment, count=p-1)
+    Send(candidates, to=master_process)
 
-    Recieve Array Segment from Master Process
+    splitters = Receive(from=master_process)
 
-    Sort Array Segment
-    Choose p - 1 Splitter Candidates from the Array Segment
+    buckets = [[] * (size(splitters) + 1)]
+    for element in segment:
+        found = false
+        for index, splitter in splitters:
+            if element < splitters:
+                buckets[index].append(element)
+                found = true
+                break
+        if not found:
+            buckets[-1].append(element)
 
-    Send p - 1 Splitter Candidates to Master Processes
-    Recieve Splitters from Master Process
+    for index, bucket in buckets:
+        buckets[index] = Sort(bucket)
 
-    Create Buckets based on Splitters
-    Partition Array Segment into Buckets based on Splitters
-    Sort Buckets
+    merged_buckets = []
+    if id % 2 == 0:
+        Send(buckets, to=process_id + 1) 
+        received_buckets = Receive(from=process_id - 1)
+        merged_buckets = Merge(buckets, received_buckets)
+        Send(merged_buckets, to=process_id - 1)
+    else if id % 2 == 1: 
+        received_buckets = Receive(from=process_id - 1)
+        merged_buckets = Merge(buckets, received_buckets)
+        Send(merged_buckets, to=process_id + 1)
 
-    Tournament Merge with Adacent Processes
-    Send Sorted Array to Master Process
+    if id == p - 1:
+        Send(merged_buckets, to=master_process)
+
 ```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
