@@ -16,7 +16,7 @@ For primary communication we will utilize a text message group chat.
 
 - Bitonic Sort: Bitonic sort is a recursive sorting algorithm which sorts bitonic sequences by comparing and swapping sections of the of the array in a predefined order. A bitonic sequence is a sequence that is strictly increasing, then decreasing. At each stage of the sort a portion
 of the sequence is swapped and then remerged into a larger portion of the sequence. Only arrays of size 2^n can be sorted.
-- Sample Sort:
+- Sample Sort: Sample sort is a divide-and-conquer algorithm similar to how quicksort partitions its input into two parts at each step revolved around a singluar pivot value, but what makes sample sort unique is that it chooses a large amount of pivot values and partitions the rest of the elements on these pivots and sorts all these partitions.
 - Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
 
@@ -95,6 +95,60 @@ main() {
     MPI_Finalize();
     return 0;
 }
+
+- Sample Sort Pseudocode 
+- Inputs is your global array
+
+// Initialization 
+arr = input array MPI_Init(); 
+
+int num_proc, rank; 
+MPI_COMM_RANK(MPI_COMM_WORLD, &rank) 
+MPI_COMM_SIZE(MPI_COMM_WORLD, &num_proc) size = arr / num_proc 
+
+// Distribute data if (rank == 0) { 
+    localArr = arr with 'size' amount of elements MPI_Scatter(arr, size, localArr) 
+} 
+
+// Local Sort on each Processor 
+sampleSort(localArr[rank])
+
+// Sampling 
+sample_size = num_proc - 1 samples = select_samples(localArr[rank], sample_size)
+
+// Gather samples on root 
+MPI_Gather(localArr, size, sortedArr) 
+if (rank == 0) { 
+    sorted_samples = SampleSort(sortedArr) 
+    pivots = Choose_Pivots(sorted_samples, num_proc - 1) 
+}
+
+// Broadcast MPI_Bcast(&pivots, size, MPI_INT, root, MPI_COMM_WORLD);
+
+// Redistribute data according to pivots 
+send_counts, recv_counts, send_displacements, recv_displacements = arr size num_proc 
+for(int i = 0; i < size; i++) { 
+    for(int j = 0; j < num_proc; j++) { 
+        if(localArr[rank][i] <= pivots[j]) 
+            send_data_to_processor(j) 
+    } 
+}
+
+// Perform All-to-All communication 
+MPI_Alltoall(send_counts, send_displacements, recv_counts, recv_displacements)
+
+// Local sort again after redistribution 
+sampleSort(localArr[rank])
+
+// Gather sorted subarrays 
+MPI_Gather(localArr[rank], size, gatherSortedArr)
+
+// Final merge at root processor 
+if (rank == 0) 
+    sampleSort(gatherSortedArr)
+
+// Finalize MPI 
+MPI_Finalize();
 
 - Merge Sort Pseudocode
 - Inputs is your global array
