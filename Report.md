@@ -364,7 +364,13 @@ For the sake of this project, the number of processes being tested will also be 
 The strong scaling potential of an algorithm can be analyzed by keeping the problem size fixed while increasing the number of processors/nodes. For each algorithm, this will be measured by recording the time it takes to work through an input of a constant size when utilizing varying amounts of processors. We will increase processor count progressively, testing powers of two for their performance (2, 4, 8, 16 processors, etc.). The actual problem size will be decided based on benchmarking a small processor count in order to ensure that jobs can complete on a reasonable timescale (hours at most). The corresponding decrease (or increase) in execution time will allow us to measure the relative strong scaling of each algorithm.
 
 #### Weak scaling (increase problem size, increase number of processors)
-
+An algorithm's weak scaling is dependent on how well additional processes allow it to solve
+larger problems in a similar amount of time. For each of the above algorithms, we will evaluate
+weak scaling by measuring runtime while the number of processes and length are kept proportional:
+We will test a problem size $n=2^{20}$ with $p=4$ processes, $n=2^{22}$ with $p=16$,
+$n=2^{24}$ with $p=64$, $n=2^{26}$ with $p=256$, and $n=2^{28}$ with $p=1024$. When graphed,
+effective weak scaling will maintain a mild or level slope, and ineffective weak scaling will show
+steeply increasing runtime as the problem size and processor count increase.
 
 ### 2d. How the team will communicate:
 - For the sake of this project, the team has decided to go forward with using Slack as the main form of communication, with periodic in-person meetings for discussion and implementation of the algorithms at hand.
