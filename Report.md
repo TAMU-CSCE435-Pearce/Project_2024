@@ -178,6 +178,146 @@ if worker process:
     MPI_Recv(...) items and their indices and place into correct offset location
 ```
 
+#### Merge Sort:
+##### MPI calls used:
+- `MPI_Init(...)`
+- `MPI_Comm_size(...)`
+- `MPI_Comm_rank(...)`
+- `MPI_Send(...)`
+- `MPI_Recv(...)`
+- `MPI_Finalize(...)`
+
+##### Pseudocode
+```C
+// Sort a fully-local array with standard merge sort:
+local_merge_sort(array, size):
+    if (size < 2):
+        return
+    local_merge_sort(array, size/2)
+    local_merge_sort(&array[size/2], size/2)
+
+    tmp_array_i = new array of length size/2
+    tmp_array_j = new array of length size/2
+    for i from 0 to size/2 - 1, inclusive:
+        tmp_array_i[i] = array[i]
+        tmp_array_j[i] = array[size/2 + i]
+
+    i = 0
+    j = 0
+    while (i < size/2 or j < size/2):
+        if (i == size/2):
+            array[i+j] = tmp_array_j[j]
+            j++
+            continue
+        if (j == size/2):
+            array[i+j] = tmp_array_i[i]
+            i++
+            continue
+        if (tmp_array_i[i] <= tmp_array_j[j]):
+            array[i+j] = tmp_array_i[i]
+            i++
+        else:
+            array[i+j] = tmp_array_j[j]
+            j++
+
+// Take only the bottom half of the provided values and merge them:
+merge_bottom_half(array_i, array_j, array_out, size):
+    i = 0
+    j = 0
+    while (i + j < size):
+        if (array_i[i] <= array_j[j]):
+            array_out[i+j] = array_i[i]
+            i++
+        else:
+            array_out[i+j] = array_j[j]
+            j++
+
+// Take only the top half of the provided values and merge them:
+merge_top_half(array_i, array_j, array_out, size):
+    i = size-1
+    j = size-1
+    out_place = size-1
+    while (out_place >= 0):
+        if (array_i[i] <= array_j[j]):
+            array_out[out_place] = array_i[i]
+            i--
+        else:
+            array_out[out_place] = array_j[j]
+            j--
+        out_place--
+
+// Merge with one specific neighbor. Relative ranks determine which one gets the higher
+// or lower array elements.
+merge_2_way(neighbor_id):
+    Send local_subarray to neighbor_id via MPI_Send()
+    Receive remote_subarray from neighbor_id via MPI_Recv()
+    new_subarray = allocate new array of length (n/p)
+    if (neighbor_id > local_rank):
+        // Neighbor has a higher rank, meaning this process will get the lower values.
+        merge_bottom_half(local_subarray, remote_subarray, new_subarray, n/p)
+    else:
+        // Neighbor has a lower rank, meaning this process will get the higher values.
+        merge_top_half(local_subarray, remote_subarray, new_subarray, n/p)
+    Deallocate local_subarray
+    Set local_subarray = new_subarray
+
+// Use a combination of 2-way merges to combine two sorted chunk_size/2 sized chunks
+// into one sorted chunk_size sized chunk. Each offset=x iteration isolates another
+// process at the top and bottom of the chunk as definitely being sorted within the
+// new chunk. At the last iteration, only the middle two processes merge with each
+// other, because they're the only two not confirmed to be sorted yet.
+merge_n_way(chunk_size):
+    rank_within_chunk = local_rank % chunk_size
+
+    offset = chunk_size / 2
+    min_offset = chunk_size/2 - rank_within_chunk
+    if (rank_within_chunk >= chunk_size / 2):
+        min_offset = -min_offset + 1
+    while (offset >= min_offset):
+
+        // Choose offset direction based on whether this process is in the top or bottom
+        // half of the chunk:
+        if (rank_within_chunk < chunk_size/2):
+            merge_2_way(local_rank + offset)
+        else:
+            merge_2_way(local_rank - offset)
+        offset--
+
+MPI_Init()
+
+p = MPI_Comm_size()
+local_rank = MPI_Comm_rank()
+
+local_subarray = New array with (n/p) elements generated according to the specified input type
+
+local_merge_sort(local_array, n/p)
+k = 1
+while k < n:
+    k *= 2
+    // Example: k=4.
+    // Odd and even processes have already merged, meaning there are p/2 sorted distributed
+    // subarrays spanning 2 processes each, and this next step will consolidate them into p/4
+    // sorted distributed subarrays spanning 4 processes each.
+    merge_n_way(k)
+
+// Double-check sorting:
+for i from 1 to (n/p - 1):
+    assert local_array[i-1] <= local_array[i]
+
+// Send top value to next process and bottom value to previous process:
+if (local_rank < p-1):
+    Send local_array[n/p - 1] to (local_rank+1) via MPI_Send()
+if (local_rank > 0):
+    Send local_array[0] to (local_rank-1) via MPI_Send()
+    Receive the value next_lower from (local_rank-1) via MPI_Recv()
+    assert local_array[0] >= next_lower
+if (local_rank < p-1):
+    Receive the value next_higher from (local_rank+1) via MPI_Recv()
+    assert local_array[n/p - 1] <= next_higher
+
+MPI_Finalize()
+```
+
 ### 2c. Evaluation plan - what and how will you measure and compare
 ____
 
