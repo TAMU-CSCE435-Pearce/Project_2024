@@ -15,7 +15,7 @@ For primary communication we will utilize a text message group chat.
 ### need to complete
 
 - Bitonic Sort: Bitonic sort is a recursive sorting algorithm which sorts bitonic sequences by comparing and swapping sections of the of the array in a predefined order. A bitonic sequence is a sequence that is strictly increasing, then decreasing. At each stage of the sort a portion
-of the sequence is swapped and then remerged into a larger portion of the sequence.
+of the sequence is swapped and then remerged into a larger portion of the sequence. Only arrays of size 2^n can be sorted.
 - Sample Sort:
 - Merge Sort: Merge sort is a divide-and-conquer algorithm that sorts an array by splitting the array into halves until each sub-array contains a single element. Each sub-array is then put back together in a sorted order.
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
@@ -24,6 +24,85 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 ### need to complete
 
 - For MPI programs, include MPI calls you will use to coordinate between processes
+
+- Bitonic Sort Pseudocode
+- Inputs is your global array
+
+// Bitonic Merge
+void bitonicMerge(data, low, count, direction) {
+    if (count > 1) {
+        int k = count / 2;
+        for (int i = low; i < low + k; ++i) {
+            if ((data[i] > data[i + k]) == direction) {
+                std::swap(data[i], data[i + k]);
+            }
+        }
+        bitonicMerge(data, low, k, direction);
+        bitonicMerge(data, low + k, k, direction);
+    }
+}
+
+// Bitonic Sort (sequential on local data)
+void bitonicSort(data, low, count, direction) {
+    if (count > 1) {
+        int k = count / 2;
+        bitonicSort(data, low, k, true);  // Sort in ascending order
+        bitonicSort(data, low + k, k, false);  // Sort in descending order
+        bitonicMerge(data, low, count, direction);
+    }
+}
+
+main() {
+    //Initialize array and MPI
+    MPI_Init();
+
+    //Getting the total processes and rank
+    int size, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    //Initializing the array to be sorted
+    if (rank == 0)
+        arr = random array;
+    subarray(2^n / size);
+    int localSize = 2^n / size;
+
+    // Scatter the data from root to all processes
+    MPI_Scatter(arr, localSize, MPI_INT, arr, subarray, MPI_INT, 0, MPI_COMM_WORLD);
+
+    // Sort the local data using bitonic sort
+    bitonicSort(subarray, 0, localSize, true);
+
+    // Perform parallel bitonic sorting
+    for (int phase = 1; phase <= size; ++phase) {
+        int partner = rank ^ (1 << (phase - 1));  // Find partner using bitwise XOR
+
+        // Exchange data with partner process
+        dataReceived(localSize);
+        MPI_Sendrecv(subarray, localSize, MPI_INT, partner, 0,
+                     dataReceived, localSize, MPI_INT, partner, 0,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        // Merge received data with local data
+        if (rank < partner) {
+            // Ascending order
+            subarray.insert(subarray.end(), dataReceived.begin(), dataReceived.end());
+            bitonicMerge(subarray, 0, subarray.size(), true);
+            subarray.resize(localSize);  // Keep only first half
+        } else {
+            // Descending order
+            subarray.insert(subarray.end(), dataReceived.begin(), dataReceived.end());
+            bitonicMerge(subarray, 0, subarray.size(), false);
+            subarray.resize(localSize);  // Keep only second half
+        }
+    }
+
+    // Gather the sorted subarrays at root process
+    MPI_Gather(subarray, localSize, MPI_INT, arr, localSize, MPI_INT, 0, MPI_COMM_WORLD);
+
+    MPI_Finalize();
+    return 0;
+}
 
 - Merge Sort Pseudocode
 - Inputs is your global array
