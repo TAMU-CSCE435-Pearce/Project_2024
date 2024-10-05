@@ -12,7 +12,6 @@
 We will implement and analyze the effectiveness of four parallel sorting algorithms. In our project we will implement bitonic, sample, merge, and radix sorts. We will compare overall sorting times between processes, efficiency with limited number of cores, and compare and contrast various edge cases to find maximum and minimum times for all sorting algorithms. 
 For primary communication we will utilize a text message group chat.    
 ### 2a. Brief project description (what algorithms will you be comparing and on what architectures)
-### need to complete
 
 - Bitonic Sort: Bitonic sort is a recursive sorting algorithm which sorts bitonic sequences by comparing and swapping sections of the of the array in a predefined order. A bitonic sequence is a sequence that is strictly increasing, then decreasing. At each stage of the sort a portion
 of the sequence is swapped and then remerged into a larger portion of the sequence. Only arrays of size 2^n can be sorted.
@@ -21,7 +20,6 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 - Radix Sort: Radix sorting is a non-comparative sorting algorithm where numbers are placed into buckets based on singular digits going from least significant to most significant.
 
 ### 2b. Pseudocode for each parallel algorithm
-### need to complete
 
 - For MPI programs, include MPI calls you will use to coordinate between processes
 
