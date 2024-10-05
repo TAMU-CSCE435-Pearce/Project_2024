@@ -88,6 +88,32 @@ else if master process:
 ```
 
 #### Sample Sort:
+##### MPI calls used to coordinate between processes:
+- `MPI_Init(...)`
+- `MPI_Comm_rank(...)`
+- `MPI_Comm_size(...)`
+- `MPI_Send(...)`
+- `MPI_Recv(...)`
+- `MPI_Comm_split(...)`
+- `MPI_Gather(...)`
+- `MPI_Finalize(...)`
+- `MPI_Barrier(...)`
+##### Pseudocode
+```txt
+
+split initial array into subarrays
+for each process
+    sort each subarray using quicksort
+    send process 0 `s` elements
+process 0 sorts `s` elements with quicksort
+chooses `p-1` splitters
+sends splitters to all processes
+for each process
+    from each subarray split on splitters into `p` buckets
+    send bucket 0 to process 0, bucket 1 to process 1, ... , bucket `p-1` to process `p-1`
+    barrier
+    bucket sort received buckets - combine
+reutrn sorted bucket 0, bucket 1, ..., bucket `p-1`
 
 #### Merge Sort:
 
