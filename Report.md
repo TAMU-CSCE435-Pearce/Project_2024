@@ -124,10 +124,11 @@ mergeArrays:
 ```
 
 ### 2c. Evaluation plan - what and how will you measure and compare
-- Input sizes, Input types
+- Input Sizes, Input Types, Processes
 
-    Input Sizes: 2^10 to 2^20
+    Input Sizes: 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28
     Input Types: Sorted, Sorted with 1% Perturbed, Random, Reverse Sorted
+    Processes: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
 
 - Strong scaling (same problem size, increase number of processors/nodes)
 - Weak scaling (increase problem size, increase number of processors)
