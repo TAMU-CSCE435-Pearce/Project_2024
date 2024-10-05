@@ -318,6 +318,8 @@ if (local_rank < p-1):
 MPI_Finalize()
 ```
 
+#### Radix Sort:
+
 ### 2c. Evaluation plan - what and how will you measure and compare
 ____
 
