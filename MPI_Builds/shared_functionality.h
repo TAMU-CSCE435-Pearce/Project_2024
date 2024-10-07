@@ -5,7 +5,7 @@
 *   This header file should be included by all four algorithm implementations,
 *   so that there's only one set of code to generate input and verify output.
 * AUTHOR: Jeffrey Mitchell
-* LAST REVISED: 10/6/2024
+* LAST REVISED: 10/7/2024
 ******************************************************************************/
 
 #ifndef SHARED_FUNCTIONALITY_H
@@ -43,7 +43,7 @@ int setup_input(int *local_subarray, int n, char *input_type) {
         input_type = input_type + 1;
 
     // Ensure the rand() calls return different values on every run:
-    srand(time(NULL));
+    srand(time(NULL) + local_rank*1024);
 
     if (strcmp("sorted", input_type) == 0) {
         for (int i = 0; i < size; i++)
