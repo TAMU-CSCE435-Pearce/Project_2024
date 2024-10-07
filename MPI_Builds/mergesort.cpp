@@ -6,7 +6,7 @@
 *   sort their local subarrays, and then sort-merge their subarrays across
 *   process boundaries while keeping the array decentralized.
 * AUTHOR: Jeffrey Mitchell
-* LAST REVISED: 10/6/2024
+* LAST REVISED: 10/7/2024
 ******************************************************************************/
 
 #include <stdio.h>
@@ -162,6 +162,7 @@ void merge_n_way(int chunk_size) {
 
 int main(int argc, char *argv[]) {
 
+    int rc = 0;
     int p;
     int n;
     if (argc < 2) {
@@ -193,11 +194,13 @@ int main(int argc, char *argv[]) {
     }
 
 
-    if (verify_sort(local_subarray, local_size, 0))
+    if (verify_sort(local_subarray, local_size, 0)) {
         printf("Process %d: Sort check failed.\n", local_rank);
-    else
+        rc = 1;
+    } else {
         printf("Process %d: Sort check succeeded.\n", local_rank);
+    }
 
     MPI_Finalize();
-    return 0;
+    return rc;
 }
