@@ -38,23 +38,21 @@ int setup_input(int *local_subarray, int n, char *input_type) {
         first_indice += local_rank;
     }
 
-    // Let people use "sorted", "-sorted", or "--sorted":
-    while (input_type[0] == '-')
-        input_type = input_type + 1;
-
     // Ensure the rand() calls return different values on every run:
     srand(time(NULL) + local_rank*1024);
 
-    if (strcmp("sorted", input_type) == 0) {
+    // These strings are specified by the adiak::value() choices in the
+    // Report.md template, section 3b:
+    if (strcmp("Sorted", input_type) == 0) {
         for (int i = 0; i < size; i++)
             local_subarray[i] = first_indice + i;
-    } else if (strcmp("reversed", input_type) == 0) {
+    } else if (strcmp("ReverseSorted", input_type) == 0) {
         for (int i = 0; i < size; i++)
             local_subarray[i] = n - (first_indice + i);
-    } else if (strcmp("random", input_type) == 0) {
+    } else if (strcmp("Random", input_type) == 0) {
         for (int i = 0; i < size; i++)
             local_subarray[i] = rand();
-    } else if (strcmp("onepercent", input_type) == 0) {
+    } else if (strcmp("1_perc_perturbed", input_type) == 0) {
 
         // Start with a normal sorted array:
         for (int i = 0; i < size; i++)
