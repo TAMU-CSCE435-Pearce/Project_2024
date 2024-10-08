@@ -28,13 +28,10 @@ void local_merge_sort(int *array, int size) {
     local_merge_sort(&array[size/2], size - size/2);
 
     int *tmp_array_i = (int *) malloc(sizeof(int) * size/2);
-    int *tmp_array_j = (int *) malloc(sizeof(int) * (size - size/2));
+    int *tmp_array_j = array + size/2;
     for (int i = 0; i < size/2; i++) {
         tmp_array_i[i] = array[i];
-        tmp_array_j[i] = array[size/2 + i];
     }
-    if (size % 2 == 1)
-        tmp_array_j[size/2] = array[size-1];
 
     int i = 0;
     int j = 0;
@@ -55,7 +52,6 @@ void local_merge_sort(int *array, int size) {
     }
 
     free(tmp_array_i);
-    free(tmp_array_j);
 }
 
 // Take only the bottom half of the provided values and merge them:
