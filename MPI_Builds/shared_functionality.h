@@ -59,7 +59,7 @@ int setup_input(int *local_subarray, int n, char *input_type) {
             local_subarray[i] = first_indice + i;
 
         // Pick size/100 indices and give them random values from 0 to n:
-        for (int i = 0; i < size/100; i++)
+        for (int i = 0; i <= size/100; i++)
             local_subarray[rand() % size] = rand() % n;
 
     } else {
