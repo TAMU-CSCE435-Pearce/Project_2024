@@ -55,6 +55,11 @@ void countSort(int* ary, int* countHistogram, int n, int exp)
     for (i = 0; i < n; i++)
         count[(ary[i] / exp) % 10]++;
 
+
+    //copy count to histogramRet so we can use it for prefix
+    for (i = 0; i < 10; i++)
+		countHistogram[i] = count[i];
+    
     // Change count[i] so that count[i]
     // now contains actual position
     // of this digit in output[]
@@ -73,14 +78,15 @@ void countSort(int* ary, int* countHistogram, int n, int exp)
     for (i = 0; i < n; i++)
         ary[i] = output[i];
 
-    //copy count to histogramRet so we can use it for prefix
-    for (i = 0; i < 10; i++)
-		countHistogram[i] = count[i];
-
     free(output);
 }
 
-
+void printOutput(int* ary, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d ", ary[i]);
+    }
+    printf("\n");
+}
 /// <summary>
 /// Sorts the local array using radix sort, and then communicates with other processes to place items in correct location.
 /// We will not be using this function, as it sorts the entire array. For parallel computation, we want to sort by digit, rearrange, sort by digit, rearrange, and so on.
@@ -155,30 +161,30 @@ int main(int argc, char* argv[]){
 
     //global max tells us how many iterations we need to perform for local sort, and rearranging.
     int* localBufferRearrange = (int*) malloc(sizeof(int) * local_size); //array to hold the transitionary results, as we need to retain the original array for sending
-    
-    int* countHistogram = (int*) malloc(sizeof(int) * 10); //array to hold the histogram of the current digit place
     int* combinedCountHistogram = (int*) malloc(sizeof(int) * 10 * numtasks); //array to hold all the count histograms so we can calculate for index
 
     //sum, prefix sum, and left sum arrays
-    for (int exponent = 1;  0 < globalMax/ exponent; exponent*= 10)
+    // printf("Process %d: Global max is %d\n", taskid, globalMax);
+    for (int exponent = 1;  globalMax/exponent > 0; exponent*= 10)
     {
-        int allCountsSum[10] = {
-          0
-        }; // histogram for aggregate array
-        int allCountsPrefixSum[10] = {
-          0
-        }; // cumulative sum array to be built from allCountsSum
-        int allCountsSumLeft[10] = {
-          0
-        }; /* histogram for elements left of current proc */
+        int countHistogram[10] = {0}; // histogram for current digit place
+        int allCountsSum[10] = {0}; // histogram for aggregate array
+        int allCountsPrefixSum[10] = {0}; // cumulative sum array to be built from allCountsSum
+        int allCountsSumLeft[10] = {0}; /* histogram for elements left of current proc */
 
         countSort(local_subarray, countHistogram, local_size, exponent); //sort by current digit
         MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to sort local arrays first
+
+        // printf("Process %d: After sorting by digit %d\n", taskid, exponent);
+        // printOutput(local_subarray, local_size);
 
         //TODO: compute prefix sum to determine location of each value
         // MPI_Gather the histograms to get a cumulative one.
         MPI_Allgather(countHistogram, 10, MPI_INTEGER, combinedCountHistogram, 10, MPI_INTEGER, MPI_COMM_WORLD);
         //use the combinedCountHistogram to determine global location. but first, we need to compress it into prefixsum, sum, and left sum
+        // printf("Process %d: Combined count histogram\n", taskid);
+        // printOutput(combinedCountHistogram, 10 * numtasks);
+
         for (int i = 0; i < 10 * numtasks; i++) {
           int lsd = i % 10;
           int p = i / 10; //processor rank
@@ -196,36 +202,44 @@ int main(int argc, char* argv[]){
         for (int i = 1; i < 10; i++) {
           allCountsPrefixSum[i] += allCountsPrefixSum[i - 1];
         }
-         
+
+        MPI_Barrier(MPI_COMM_WORLD); //wait for sequential
         // request and status variables to be passed to MPI send and receive functions
+        // printf("Process %d: All counts sum\n", taskid);
+        // printOutput(allCountsSum, 10);
+        // printf("Process %d: All counts prefix sum\n", taskid);
+        // printOutput(allCountsPrefixSum, 10);
+        // printf("Process %d: All counts sum left\n", taskid);
+        // printOutput(allCountsSumLeft, 10);
         MPI_Request request;
         MPI_Status status;      
 
         //keep track of the elements we sent from this processor
-        int lsdSent[10] = {
-          0
-        }; 
+        int lsdSent[10] = {0}; 
 
         //TODO: communicate with other processes to place items in correct location using MPI_Send and MPI_Recv
         // data rearrangement
         // we do this with an int[2] array, where the first element is the value and the second element is the index
         int valueAndIndex[2];
-        int value, index, destIndex, destProcess, localDestIndex, lsd;
+        int value, lsd, destIndex, destProcess, localDestIndex;
         for (int i = 0; i < local_size; i++)
         {
             value = local_subarray[i];
             lsd = (local_subarray[i] / exponent) % 10;
 
+            //FIXME: destIndex is not being calculated correctly
+            //printf the allCountsPrefixSum, allCountsSum, allCountsSumLeft, and lsdSent arrays to debug
             // determine which process to send to based on the value, and the according index
+            // destIndex = allCountsPrefixSum[lsd] - allCountsSum[lsd] + allCountsSumLeft[lsd] + lsdSent[lsd];
             destIndex = allCountsPrefixSum[lsd] - allCountsSum[lsd] + allCountsSumLeft[lsd] + lsdSent[lsd];
-
+            
+            // printf("Process %d: lsd %d, allCountsPrefixSum %d, allCountsSum %d, allCountsSumLeft %d, lsdSent %d\n", taskid, lsd, allCountsPrefixSum[lsd], allCountsSum[lsd], allCountsSumLeft[lsd], lsdSent[lsd]);
+            // printf("destIndex %d\n", destIndex);
             // increment count of elements with key lsd is to be sent
             lsdSent[lsd]++;
             destProcess = destIndex / local_size; 
-
+            // printf("value %d, lsd %d, destIndex %d, destProcess %d\n", value, lsd, destIndex, destProcess);
             //set the array to be sent and send!
-            valueAndIndex[0] = value;
-            valueAndIndex[1] = destIndex; 
 
             // TODO: make sure that you are not sending to yourself
             // then Isend (nonblocking for speed) and recv, and place into the correct location
@@ -233,17 +247,15 @@ int main(int argc, char* argv[]){
             // printf("Process %d: Sending %d to process %d\n", taskid, value, destProcess);
             //check if invalid destination and abort
             
-            if (destProcess >= 0 && destProcess < numtasks) {
-                //set the array to be sent and send!
-                valueAndIndex[0] = value;
-                valueAndIndex[1] = destIndex; 
+            valueAndIndex[0] = value;
+            valueAndIndex[1] = destIndex; 
 
-                MPI_Isend(&valueAndIndex, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD, &request);
-            }            
+            MPI_Isend(&valueAndIndex, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD, &request);
             MPI_Recv(valueAndIndex, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
             localDestIndex = valueAndIndex[1] % local_size; //interpret the global index as a local one 
             localBufferRearrange[localDestIndex] = valueAndIndex[0]; //assign to the right location
+            //print array
         }
 
 
@@ -253,7 +265,9 @@ int main(int argc, char* argv[]){
             local_subarray[i] = localBufferRearrange[i];
         }
 
-        // MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to finish sorting local arrays first
+        // printf("Process %d: After rearranging by digit %d\n", taskid, exponent);
+        // printOutput(local_subarray, local_size);
+
     }
         
     //after iterating through every digit of max digit, and resending, and reorganizing, we have completed radix
