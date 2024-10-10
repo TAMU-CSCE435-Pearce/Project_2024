@@ -17,9 +17,9 @@
 #include <limits.h>
 
 #include "shared_functionality.h"
-#include "caliper/cali.h"
-#include <caliper/cali-manager.h>
-#include "adiak.hpp"
+// #include "caliper/cali.h"
+// #include <caliper/cali-manager.h>
+// #include "adiak.hpp"
 
 /// <summary>
 /// Utility function to get maximum value in the array.
@@ -47,7 +47,7 @@ int getMax(int* ary, int n)
 void countSort(int* ary, int* countHistogram, int n, int exp)
 {
     // Output array, temporary storage that will be written to ary afterwards
-    int* output = malloc(sizeof(int) * n); //allocate space to store output array
+    int* output = (int*) malloc(sizeof(int) * n); //allocate space to store output array
     int i, count[10] = { 0 }; //initialize count array
 
     // Store count of occurrences
@@ -87,19 +87,19 @@ void countSort(int* ary, int* countHistogram, int n, int exp)
 /// </summary>
 /// <param name="array"></param>
 /// <param name="size"></param>
-void local_radix_sort(int* array, int size){
+// void local_radix_sort(int* array, int size){
 
-    //get maximum value in the array in order to know the number of digits
-    int max = getMax(array, size);
+//     //get maximum value in the array in order to know the number of digits
+//     int max = getMax(array, size);
 
-    // perform counting sort for every digit, here we are doing decimal digit
-    for (int exp = 1; m / exp > 0; exp *= 10)
-        countSort(arr, n, exp);
+//     // perform counting sort for every digit, here we are doing decimal digit
+//     for (int exp = 1; max / exp > 0; exp *= 10)
+//         countSort(array, size, exp);
 
-}
+// }
 
 int main(int argc, char* argv[]){
-    CALI_CXX_MARK_FUNCTION;
+    // CALI_CXX_MARK_FUNCTION;
 
     //check arguments:    
     if (argc < 2) {
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]){
     //declare variables used:
     int arySize,
         taskid,                /* a task identifier */
-        aryPartitionSize;      /* Size of the array an individual task computes*/
+        local_size,            /* Size of the array an individual task computes*/
         numworkers,            /* number of worker tasks */
         source,                /* task id of message source */
         dest,                  /* task id of message destination */
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){
         rc;        			   /* return code */
     MPI_Status status;
 
-    int* localArrayOffset;     /*stores local array that the process is sorting*/
+    int* local_subarray;     /*stores local array that the process is sorting*/
     arySize = atoi(argv[1]);
 
     MPI_Init(&argc, &argv);
@@ -136,16 +136,14 @@ int main(int argc, char* argv[]){
         return 22; // EINVAL
     }
     // Create caliper ConfigManager object
-    cali::ConfigManager mgr;
-    mgr.start();
-
-    aryPartitionSize = arySize/numtasks;
+    // cali::ConfigManager mgr;
+    // mgr.start();
 
     // setup local array
-    CALI_MARK_BEGIN("data_init_runtime");
-    local_subarray = (int *) malloc(sizeof(int) * aryPartitionSize); //allocate space to 
+    // CALI_MARK_BEGIN("data_init_runtime");
+    local_subarray = (int *) malloc(sizeof(int) * arySize/numtasks); //allocate space to 
     local_size = setup_input(local_subarray, arySize, argv[2]);
-    CALI_MARK_END("data_init_runtime");
+    // CALI_MARK_END("data_init_runtime");
 
     //start by calculating max, and performing a mpi allreduce to get the max value and then broadcast
     int max = getMax(local_subarray, local_size);
@@ -156,13 +154,13 @@ int main(int argc, char* argv[]){
 
 
     //global max tells us how many iterations we need to perform for local sort, and rearranging.
-    int* localBufferRearrange = malloc(sizeof(int) * local_size); //array to hold the transitionary results, as we need to retain the original array for sending
+    int* localBufferRearrange = (int*) malloc(sizeof(int) * local_size); //array to hold the transitionary results, as we need to retain the original array for sending
     
-    int* countHistogram = malloc(sizeof(int) * 10); //array to hold the histogram of the current digit place
-    int* combinedCountHistogram = malloc(sizeof(int) * 10 * numtasks); //array to hold all the count histograms so we can calculate for index
+    int* countHistogram = (int*) malloc(sizeof(int) * 10); //array to hold the histogram of the current digit place
+    int* combinedCountHistogram = (int*) malloc(sizeof(int) * 10 * numtasks); //array to hold all the count histograms so we can calculate for index
 
     //sum, prefix sum, and left sum arrays
-    for (int exponent = 0;  0 < globalMax/ exponent; exponent*= 10)
+    for (int exponent = 1;  0 < globalMax/ exponent; exponent*= 10)
     {
         int allCountsSum[10] = {
           0
@@ -212,11 +210,11 @@ int main(int argc, char* argv[]){
         // data rearrangement
         // we do this with an int[2] array, where the first element is the value and the second element is the index
         int valueAndIndex[2];
-        int value, index, destIndex, destProc, localDestIndex, lsd;
+        int value, index, destIndex, destProcess, localDestIndex, lsd;
         for (int i = 0; i < local_size; i++)
         {
-            value = localArrayOffset[i];
-            lsd = (localArrayOffset[i] / exp) % 10;
+            value = local_subarray[i];
+            lsd = (local_subarray[i] / exponent) % 10;
 
             // determine which process to send to based on the value, and the according index
             destIndex = allCountsPrefixSum[lsd] - allCountsSum[lsd] + allCountsSumLeft[lsd] + lsdSent[lsd];
@@ -232,8 +230,17 @@ int main(int argc, char* argv[]){
             // TODO: make sure that you are not sending to yourself
             // then Isend (nonblocking for speed) and recv, and place into the correct location
             // this is any processor
-            MPI_Isend( & valIndexPair, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD, & request);
-            MPI_Recv(valIndexPair, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, & status);
+            // printf("Process %d: Sending %d to process %d\n", taskid, value, destProcess);
+            //check if invalid destination and abort
+            
+            if (destProcess >= 0 && destProcess < numtasks) {
+                //set the array to be sent and send!
+                valueAndIndex[0] = value;
+                valueAndIndex[1] = destIndex; 
+
+                MPI_Isend(&valueAndIndex, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD, &request);
+            }            
+            MPI_Recv(valueAndIndex, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
             localDestIndex = valueAndIndex[1] % local_size; //interpret the global index as a local one 
             localBufferRearrange[localDestIndex] = valueAndIndex[0]; //assign to the right location
@@ -246,39 +253,40 @@ int main(int argc, char* argv[]){
             local_subarray[i] = localBufferRearrange[i];
         }
 
+        // MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to finish sorting local arrays first
     }
         
     //after iterating through every digit of max digit, and resending, and reorganizing, we have completed radix
     
     
-    CALI_MARK_BEGIN("correctness_check");
+    // CALI_MARK_BEGIN("correctness_check");
     rc = verify_sort(local_subarray, local_size, 0);
-    CALI_MARK_END("correctness_check");
+    // CALI_MARK_END("correctness_check");
     if (rc) {
-        printf("Process %d: Sort check failed.\n", local_rank);
+        printf("Process %d: Sort check failed.\n", taskid);
     } else {
-        printf("Process %d: Sort check succeeded.\n", local_rank);
+        printf("Process %d: Sort check succeeded.\n", taskid);
     }
 
-    adiak::init(NULL);
-    adiak::launchdate();    // launch date of the job
-    adiak::libraries();     // Libraries used
-    adiak::cmdline();       // Command line used to launch the job
-    adiak::clustername();   // Name of the cluster
-    adiak::value("algorithm", "radix"); // The name of the algorithm you are using (e.g., "merge", "bitonic")
-    adiak::value("programming_model", "mpi"); // e.g. "mpi"
-    adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
-    adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
-    adiak::value("input_size", n); // The number of elements in input dataset (1000)
-    adiak::value("input_type", argv[2]); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
-    adiak::value("num_procs", p); // The number of processors (MPI ranks)
-    // TODO: adiak::value("scalability", scalability); // The scalability of your algorithm. choices: ("strong", "weak")
-    adiak::value("group_num", 23); // The number of your group (integer, e.g., 1, 10)
-    // TODO: adiak::value("implementation_source", implementation_source); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
+//     adiak::init(NULL);
+//     adiak::launchdate();    // launch date of the job
+//     adiak::libraries();     // Libraries used
+//     adiak::cmdline();       // Command line used to launch the job
+//     adiak::clustername();   // Name of the cluster
+//     adiak::value("algorithm", "radix"); // The name of the algorithm you are using (e.g., "merge", "bitonic")
+//     adiak::value("programming_model", "mpi"); // e.g. "mpi"
+//     adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
+//     adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
+//     adiak::value("input_size", n); // The number of elements in input dataset (1000)
+//     adiak::value("input_type", argv[2]); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
+//     adiak::value("num_procs", p); // The number of processors (MPI ranks)
+//     // TODO: adiak::value("scalability", scalability); // The scalability of your algorithm. choices: ("strong", "weak")
+//     adiak::value("group_num", 23); // The number of your group (integer, e.g., 1, 10)
+//     // TODO: adiak::value("implementation_source", implementation_source); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 
-   // Flush Caliper output before finalizing MPI
-    mgr.stop();
-    mgr.flush();
+//    // Flush Caliper output before finalizing MPI
+//     mgr.stop();
+//     mgr.flush();
     MPI_Finalize();
     return rc;
 }
