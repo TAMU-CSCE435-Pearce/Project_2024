@@ -44,7 +44,7 @@ int getMax(int* ary, int n)
 /// <param name="ary"></param>
 /// <param name="n"></param>
 /// <param name="exp"></param>
-void countSort(int* ary, int n, int exp)
+void countSort(int* ary, int* countHistogram, int n, int exp)
 {
     // Output array, temporary storage that will be written to ary afterwards
     int* output = malloc(sizeof(int) * n); //allocate space to store output array
@@ -72,11 +72,18 @@ void countSort(int* ary, int n, int exp)
     // numbers according to current digit
     for (i = 0; i < n; i++)
         ary[i] = output[i];
+
+    //copy count to histogramRet so we can use it for prefix
+    for (i = 0; i < 10; i++)
+		countHistogram[i] = count[i];
+
+    free(output);
 }
 
 
 /// <summary>
 /// Sorts the local array using radix sort, and then communicates with other processes to place items in correct location.
+/// We will not be using this function, as it sorts the entire array. For parallel computation, we want to sort by digit, rearrange, sort by digit, rearrange, and so on.
 /// </summary>
 /// <param name="array"></param>
 /// <param name="size"></param>
@@ -104,13 +111,14 @@ int main(int argc, char* argv[]){
     //declare variables used:
     int arySize,
         taskid,                /* a task identifier */
-        aryPartitionSize;    /* Size of the array an individual task computes*/
+        aryPartitionSize;      /* Size of the array an individual task computes*/
         numworkers,            /* number of worker tasks */
         source,                /* task id of message source */
         dest,                  /* task id of message destination */
         mtype,                 /* message type */
         numtasks,              /* number of tasks in partition */ 
-        rc;
+        globalMax,             /* Maximum value in the array */
+        rc;        			   /* return code */
     MPI_Status status;
 
     int* localArrayOffset;     /*stores local array that the process is sorting*/
@@ -145,36 +153,54 @@ int main(int argc, char* argv[]){
     local_size = setup_input(local_subarray, arySize, argv[2]);
     CALI_MARK_END("data_init_runtime");
 
-    //TODO: perform local sort on each process
-    local_radix_sort(local_subarray, local_size);
-    MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to sort local arrays first
+    //start by calculating max, and performing a mpi reduce to get the max value
+    int max = getMax(local_subarray, local_size);
+    //gather the results, and distribute to all processes
 
-    //TODO: compute prefix sum to determine location of each value
-    // maybe just have P0 do this and send the cumulative histogram to all other processes?
-    
+    MPI_Allreduce(&max, &globalMax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to get the max value
 
-    //TODO: communicate with other processes to place items in correct location using MPI_Send and MPI_Recv
-    // we do this with an int[2] array, where the first element is the value and the second element is the index
-    int valueAndIndex[2];
-    int* localBufferFinal = malloc(sizeof(int) * local_size); //array to hold the final results, as i can't overwrite the other array! we're still sending the info
-    int value, index, destIndex, destProc, localDestIndex, LSD;
-    for (int i = 0; i < local_size; i++)
+
+    //global max tells us how many iterations we need to perform for local sort, and rearranging.
+    int* localBufferRearrange = malloc(sizeof(int) * local_size); //array to hold the transitionary results, as we need to retain the original array for sending
+    int* countHistogram = malloc(sizeof(int) * 10); //array to hold the histogram of the current digit place
+    int* combinedCountHistogram = malloc(sizeof(int) * 10 * numtasks); //array to hold the combined histogram of the current digit place
+    for (int exponent = 0;  0 < globalMax/ exponent; exponent*= 10)
     {
-        // determine which process to send to based on the value, and the according index
+        countSort(local_subarray, countHistogram, local_size, exponent);
+        MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to sort local arrays first
+
+        //TODO: compute prefix sum to determine location of each value
+        // MPI_Gather the histograms to get a cumulative one.
+        MPI_Allgather(countHistogram, 10, MPI_INTEGER, combinedCountHistogram, 10, MPI_INTEGER, MPI_COMM_WORLD);
+
+        //use the combinedCountHistogram to determine global location. but first, we need to compress it into a single histogram
+
+
+        //TODO: communicate with other processes to place items in correct location using MPI_Send and MPI_Recv
+        // we do this with an int[2] array, where the first element is the value and the second element is the index
+        int valueAndIndex[2];
+        int value, index, destIndex, destProc, localDestIndex, LSD;
+        for (int i = 0; i < local_size; i++)
+        {
+            // determine which process to send to based on the value, and the according index
         
-        //TODO: make sure that you are not sending to yourself
-        // then Isend (nonblocking for speed) and recv, and place into the correct location
+            //TODO: make sure that you are not sending to yourself
+            // then Isend (nonblocking for speed) and recv, and place into the correct location
 
-        localDestIndex = valueAndIndex[1] % local_size; //interpret the global index as a local one 
-        localBufferFinal[localDestIndex] = valueAndIndex[0]; //assign to the right location
-    }
+            localDestIndex = valueAndIndex[1] % local_size; //interpret the global index as a local one 
+            localBufferRearrange[localDestIndex] = valueAndIndex[0]; //assign to the right location
+        }
 
-    //FIXME: this seems a little excessive.
-    // set localBufferFinal to the right location
-    for (int i = 0; i < local_size; i++)
-    {
-        local_subarray[i] = localBufferFinal[i];
+        //FIXME: this seems a little excessive.
+        // set localBufferFinal to the right location
+        for (int i = 0; i < local_size; i++)
+        {
+            local_subarray[i] = localBufferRearrange[i];
+        }
     }
+        
+
     
     
     CALI_MARK_BEGIN("correctness_check");
