@@ -264,10 +264,7 @@ int main(int argc, char* argv[]){
         {
             local_subarray[i] = localBufferRearrange[i];
         }
-
-        // printf("Process %d: After rearranging by digit %d\n", taskid, exponent);
-        // printOutput(local_subarray, local_size);
-
+        MPI_Barrier(MPI_COMM_WORLD); //wait for all processors to finish rearranging
     }
         
     //after iterating through every digit of max digit, and resending, and reorganizing, we have completed radix
