@@ -445,6 +445,32 @@ CALI_MARK_END("comp");
 └─ 0.440 correctness_check
 ```
 
+#### Radix Sort Calltree:
+```
+# MPI Radix Sort
+143.856 main
+├─ 0.001 MPI_Comm_dup
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Finalized
+├─ 0.000 MPI_Init
+├─ 0.000 MPI_Initialized
+├─ 24.575 comm
+│  └─ 24.574 comm_small
+│     ├─ 0.000 MPI_Allgather
+│     ├─ 0.003 MPI_Allreduce
+│     └─ 24.570 MPI_Barrier
+├─ 118.738 comp
+│  ├─ 118.733 comp_large
+│  │  └─ 114.279 comm
+│  │     └─ 104.602 comm_large
+│  │        ├─ 5.384 MPI_Isend
+│  │        └─ 84.708 MPI_Recv
+│  └─ 0.004 comp_small
+├─ 0.000 correctness_check
+│  ├─ 0.000 MPI_Recv
+│  └─ 0.000 MPI_Send
+└─ 0.003 data_init_runtime 
+```
 ### 3b. Collect Metadata
 
 Have the following code in your programs to collect metadata:
@@ -467,7 +493,24 @@ adiak::value("implementation_source", implementation_source); // Where you got t
 ```
 
 They will show up in the `Thicket.metadata` if the caliper file is read into Thicket.
-
+#### Radix Sort Metadata:
+```
+# Metadata Columns
+Index(['cali.caliper.version', 'mpi.world.size', 'spot.metrics',
+       'spot.timeseries.metrics', 'spot.format.version', 'spot.options',
+       'spot.channels', 'cali.channel', 'spot:node.order', 'spot:output',
+       'spot:profile.mpi', 'spot:region.count', 'spot:time.exclusive',
+       'spot:time.variance', 'launchdate', 'libraries', 'cmdline', 'cluster',
+       'algorithm', 'programming_model', 'data_type', 'size_of_data_type',
+       'input_size', 'input_type', 'num_procs', 'scalability', 'group_num',
+       'implementation_source'],
+      dtype='object')
+```
+#### Metadata
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
 
