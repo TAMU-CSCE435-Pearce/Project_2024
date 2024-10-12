@@ -12,6 +12,7 @@ for array_size in "${array_sizes[@]}"; do
       # Construct and execute the sbatch command
       process_size_to_value=$((2**array_size))
       echo sbatch mpi.grace_job $process_size_to_value $process_size \"$algorithm\"
+      sbatch mpi.grace_job $process_size_to_value $process_size $algorithm
     done
   done
 done
