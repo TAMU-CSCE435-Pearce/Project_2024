@@ -1,8 +1,16 @@
 /******************************************************************************
 * FILE: bitonicsort.cpp
-* DESCRIPTION: MPI Distributed Bitonic Sort
+* DESCRIPTION:
+*   MPI Distributed Bitonic Sort
+*   All processes generate their sections of the array, order it
+*   into a bitonic sequence recursively, and communicate to order
+*   on the whole array scale
+* SOURCES:
+*   Adapted
+*   https://www.geeksforgeeks.org/bitonic-sort/
+*   https://en.wikipedia.org/wiki/Bitonic_sorter
 * AUTHOR: Brandon Cisneros
-* LAST REVISED: 10/12/2024
+* LAST REVISED: 10/13/2024
 ******************************************************************************/
 
 #include <stdio.h>
@@ -42,8 +50,136 @@ void make_local_bitonic(int *array, int size, int sort) {
     }
 }
 
-void full_bitonic_merge(int num_procs, int local_rank) {
-    
+void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int local_size, int* recv_buffer, int level, int depth, int caller) {
+    int new_level = level;
+    while (new_level != 2) {
+        new_level /= 2;
+        bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, new_level, depth + 1, level);
+    }
+
+    int partner;
+    // CHECK
+    if ((local_rank % level) >= (level/2)) {
+        partner = local_rank - level/2;
+        printf("FIX: I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        make_local_bitonic(local_subarray, local_size, 2);
+    }
+    else {
+        partner = local_rank + level/2;
+        printf("FIX: I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        make_local_bitonic(local_subarray, local_size, 1);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
+                recv_buffer, local_size, MPI_INT, partner, 0, 
+                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // NEED ALTERNATING MIN ?????
+    bool minSide;
+    minSide = (local_rank < partner);
+
+    if (minSide) {
+        for (int i = 0; i < local_size; i++) {
+            if (local_subarray[i] > recv_buffer[i]) {
+                local_subarray[i] = recv_buffer[i];
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < local_size; i++) {
+            if (local_subarray[i] < recv_buffer[i]) {
+                local_subarray[i] = recv_buffer[i];
+            }
+        }
+    }
+}
+
+void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int local_size, int* recv_buffer, int level, int depth, int caller) {
+    int new_level = level;
+    while (new_level != 2) {
+        new_level /= 2;
+        bitonic_recurse(local_subarray, num_procs, local_rank, local_size, recv_buffer, new_level, depth+1, level);
+    }
+
+    // make_local_bitonic(local_subarray, local_size, 0);
+    int partner;
+    // CHECK
+    if ((local_rank % level) >= (level/2)) {
+        partner = local_rank - level/2;
+        printf("I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        make_local_bitonic(local_subarray, local_size, 2);
+    }
+    else {
+        partner = local_rank + level/2;
+        printf("I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        make_local_bitonic(local_subarray, local_size, 1);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
+                recv_buffer, local_size, MPI_INT, partner, 0, 
+                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // NEED ALTERNATING MIN ?????
+    bool minSide;
+    minSide = (local_rank < partner);
+    // if (num_procs != 2) {
+    //     int partitionIndex = local_rank % (level*2);
+    //     if (partitionIndex >= level/2) {
+    //         minSide = local_rank > partner;
+    //         printf("HIT on %d\n", local_rank);
+    //     }
+    // }
+
+    // TODO: CORRECT ALGORITHM, IMPLEMENT WITH THESE THINGS, THEN
+    if (level == 2 && depth == 1 && caller == 4) {
+        if ((local_rank == 2) || (local_rank == 3))
+            minSide = !minSide;
+    }
+    if (level == 2 && depth == 2 && caller == 4) {
+        if ((local_rank == 2) || (local_rank == 3) || (local_rank == 6) || (local_rank == 7))
+            minSide = !minSide;
+    }
+    if (level == 4 && depth == 1 && caller == 8) {
+        if ((local_rank == 4) || (local_rank == 5) || (local_rank == 6) || (local_rank == 7))
+            minSide = !minSide;
+    }
+    if (level == 2 && depth == 1 && caller == 8) {
+        if ((local_rank == 4) || (local_rank == 5) || (local_rank == 6) || (local_rank == 7))
+            minSide = !minSide;
+    }
+
+    if (minSide) {
+        for (int i = 0; i < local_size; i++) {
+            if (local_subarray[i] > recv_buffer[i]) {
+                local_subarray[i] = recv_buffer[i];
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < local_size; i++) {
+            if (local_subarray[i] < recv_buffer[i]) {
+                local_subarray[i] = recv_buffer[i];
+            }
+        }
+    }
+
+    if ((level == num_procs) && (num_procs != 2))
+        bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs/2, 0, num_procs);
+
+}
+
+void full_bitonic_merge(int* local_subarray, int num_procs, int local_rank, int local_size) {
+    int partner;
+    int *recv_buffer;
+
+    // Allocate buffer for receiving data
+    recv_buffer = (int *) malloc(sizeof(int) * local_size);
+
+    bitonic_recurse(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs, 0, num_procs);
+
+    make_local_bitonic(local_subarray, local_size, 1);
+    free(recv_buffer);
+
 }
 
 int main(int argc, char* argv[]) {
@@ -79,14 +215,20 @@ int main(int argc, char* argv[]) {
 
     // CALI_MARK_BEGIN("comp");
     // CALI_MARK_BEGIN("comp_large");
-    make_local_bitonic(local_subarray, local_size, 0);
+    if (num_procs == 1) {
+        make_local_bitonic(local_subarray, local_size, 1);
+    }
+    else {
+        make_local_bitonic(local_subarray, local_size, 0);
+    }
     // CALI_MARK_END("comp_large");
     // CALI_MARK_END("comp");
     // printf("Process %d: Local sort complete.\n", local_rank);
 
     // CALI_MARK_BEGIN("comm");
     // CALI_MARK_BEGIN("comm_large");
-    full_bitonic_merge(num_procs, local_rank);
+    if (num_procs != 1)
+        full_bitonic_merge(local_subarray, num_procs, local_rank, local_size);
     // CALI_MARK_END("comm_large");
     // CALI_MARK_END("comm");
 
