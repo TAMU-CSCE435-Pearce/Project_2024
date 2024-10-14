@@ -241,9 +241,9 @@ int main(int argc, char *argv[]) {
     adiak::value("input_size", n); // The number of elements in input dataset (1000)
     adiak::value("input_type", argv[2]); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
     adiak::value("num_procs", p); // The number of processors (MPI ranks)
-    // TODO: adiak::value("scalability", scalability); // The scalability of your algorithm. choices: ("strong", "weak")
+    adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
     adiak::value("group_num", 23); // The number of your group (integer, e.g., 1, 10)
-    // TODO: adiak::value("implementation_source", implementation_source); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
+    adiak::value("implementation_source", "handwritten"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 
     MPI_Finalize();
     return rc;
