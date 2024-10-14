@@ -246,8 +246,7 @@ int main(int argc, char* argv[]){
             valueAndIndex[1] = destIndex; 
             CALI_MARK_BEGIN("comm");
             CALI_MARK_BEGIN("comm_large");
-            MPI_Isend(&valueAndIndex, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD, &request);
-            MPI_Recv(valueAndIndex, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            MPI_Send(&valueAndIndex, 2, MPI_INT, destProcess, 0, MPI_COMM_WORLD);            MPI_Recv(valueAndIndex, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
             CALI_MARK_END("comm_large");
             CALI_MARK_END("comm");
             localDestIndex = valueAndIndex[1] % local_size; //interpret the global index as a local one 
