@@ -507,10 +507,10 @@ Index(['cali.caliper.version', 'mpi.world.size', 'spot.metrics',
       dtype='object')
 ```
 #### Metadata
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
+![alt text](report_img/image.png)
+![alt text](report_img/image-1.png)
+![alt text](report_img/image-2.png)
+![alt text](report_img/image-3.png)
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
 
