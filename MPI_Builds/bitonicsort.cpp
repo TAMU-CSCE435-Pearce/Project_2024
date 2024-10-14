@@ -50,45 +50,41 @@ void make_local_bitonic(int *array, int size, int sort) {
     }
 }
 
-void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int local_size, int* recv_buffer, int level, int depth, int caller) {
-    int new_level = level;
-    while (new_level != 2) {
-        new_level /= 2;
-        bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, new_level, depth + 1, level);
-    }
+void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int local_size, int* recv_buffer, int level) {
+    for (int new_level = level; new_level >= 2; new_level /=2) {
+        int partner;
+        // CHECK
+        if ((local_rank % new_level) >= (new_level/2)) {
+            partner = local_rank - new_level/2;
+            // printf("FIX: I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+            make_local_bitonic(local_subarray, local_size, 2);
+        }
+        else {
+            partner = local_rank + new_level/2;
+            // printf("FIX: I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+            make_local_bitonic(local_subarray, local_size, 1);
+        }
 
-    int partner;
-    // CHECK
-    if ((local_rank % level) >= (level/2)) {
-        partner = local_rank - level/2;
-        printf("FIX: I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
-        make_local_bitonic(local_subarray, local_size, 2);
-    }
-    else {
-        partner = local_rank + level/2;
-        printf("FIX: I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
-        make_local_bitonic(local_subarray, local_size, 1);
-    }
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
+                    recv_buffer, local_size, MPI_INT, partner, 0, 
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // NEED ALTERNATING MIN ?????
+        bool minSide;
+        minSide = (local_rank < partner);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
-                recv_buffer, local_size, MPI_INT, partner, 0, 
-                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // NEED ALTERNATING MIN ?????
-    bool minSide;
-    minSide = (local_rank < partner);
-
-    if (minSide) {
-        for (int i = 0; i < local_size; i++) {
-            if (local_subarray[i] > recv_buffer[i]) {
-                local_subarray[i] = recv_buffer[i];
+        if (minSide) {
+            for (int i = 0; i < local_size; i++) {
+                if (local_subarray[i] > recv_buffer[i]) {
+                    local_subarray[i] = recv_buffer[i];
+                }
             }
         }
-    }
-    else {
-        for (int i = 0; i < local_size; i++) {
-            if (local_subarray[i] < recv_buffer[i]) {
-                local_subarray[i] = recv_buffer[i];
+        else {
+            for (int i = 0; i < local_size; i++) {
+                if (local_subarray[i] < recv_buffer[i]) {
+                    local_subarray[i] = recv_buffer[i];
+                }
             }
         }
     }
@@ -106,12 +102,12 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
     // CHECK
     if ((local_rank % level) >= (level/2)) {
         partner = local_rank - level/2;
-        printf("I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        // printf("I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
         make_local_bitonic(local_subarray, local_size, 2);
     }
     else {
         partner = local_rank + level/2;
-        printf("I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
+        // printf("I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
         make_local_bitonic(local_subarray, local_size, 1);
     }
 
@@ -122,15 +118,8 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
     // NEED ALTERNATING MIN ?????
     bool minSide;
     minSide = (local_rank < partner);
-    // if (num_procs != 2) {
-    //     int partitionIndex = local_rank % (level*2);
-    //     if (partitionIndex >= level/2) {
-    //         minSide = local_rank > partner;
-    //         printf("HIT on %d\n", local_rank);
-    //     }
-    // }
 
-    // TODO: CORRECT ALGORITHM, IMPLEMENT WITH THESE THINGS, THEN
+    // TODO: MAKE NOT IF STATMENTS
     if (level == 2 && depth == 1 && caller == 4) {
         if ((local_rank == 2) || (local_rank == 3))
             minSide = !minSide;
@@ -164,7 +153,7 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
     }
 
     if ((level == num_procs) && (num_procs != 2))
-        bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs/2, 0, num_procs);
+        bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs/2);
 
 }
 
