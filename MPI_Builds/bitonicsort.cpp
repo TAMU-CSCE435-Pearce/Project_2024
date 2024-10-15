@@ -16,8 +16,8 @@
 #include <stdio.h>
 
 #include "mpi.h"
-// #include "caliper/cali.h"
-// #include "adiak.hpp"
+#include "caliper/cali.h"
+#include "adiak.hpp"
 
 #include "shared_functionality.h"
 
@@ -53,7 +53,9 @@ void make_local_bitonic(int *array, int size, int sort) {
 void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int local_size, int* recv_buffer, int level) {
     for (int new_level = level; new_level >= 2; new_level /=2) {
         int partner;
-        // CHECK
+
+        CALI_MARK_BEGIN("comp");
+        CALI_MARK_BEGIN("comp_large");
         if ((local_rank % new_level) >= (new_level/2)) {
             partner = local_rank - new_level/2;
             // printf("FIX: I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
@@ -64,15 +66,23 @@ void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int
             // printf("FIX: I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
             make_local_bitonic(local_subarray, local_size, 1);
         }
+        CALI_MARK_END("comp_large");
+        CALI_MARK_END("comp");
 
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_large");
         MPI_Barrier(MPI_COMM_WORLD);
         MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
                     recv_buffer, local_size, MPI_INT, partner, 0, 
                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        CALI_MARK_END("comm_large");
+        CALI_MARK_END("comm");
 
         bool minSide;
         minSide = (local_rank < partner);
 
+        CALI_MARK_BEGIN("comp");
+        CALI_MARK_BEGIN("comp_large");
         if (minSide) {
             for (int i = 0; i < local_size; i++) {
                 if (local_subarray[i] > recv_buffer[i]) {
@@ -87,6 +97,8 @@ void bitonic_recurse_fix(int* local_subarray, int num_procs, int local_rank, int
                 }
             }
         }
+        CALI_MARK_END("comp_large");
+        CALI_MARK_END("comp");
     }
 }
 
@@ -98,6 +110,9 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
     }
 
     int partner;
+
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
     if ((local_rank % level) >= (level/2)) {
         partner = local_rank - level/2;
         // printf("I'm %d with %d getting descending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
@@ -108,11 +123,17 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
         // printf("I'm %d with %d getting ascending at level %d at depth %d with caller %d\n", local_rank, partner, level, depth, caller);
         make_local_bitonic(local_subarray, local_size, 1);
     }
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
 
+    CALI_MARK_BEGIN("comm");
+    CALI_MARK_BEGIN("comm_large");
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Sendrecv(local_subarray, local_size, MPI_INT, partner, 0,
                 recv_buffer, local_size, MPI_INT, partner, 0, 
                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    CALI_MARK_END("comm_large");
+    CALI_MARK_END("comm");
 
     // NEED ALTERNATING MIN
     bool minSide;
@@ -126,25 +147,9 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
             minSide = !minSide;
         }
     }
-    // if (level == 2 && depth == 1 && caller == 4) {
-    //     if ((local_rank == 2) || (local_rank == 3))
-    //         minSide = !minSide;
-    // }
-    // if (level == 2 && depth == 2 && caller == 4) {
-    //     if ((local_rank == 2) || (local_rank == 3) || (local_rank == 6) || (local_rank == 7))
-    //         minSide = !minSide;
-    // }
-    // if (level == 4 && depth == 1 && caller == 8) {
-    //     if ((local_rank == 4) || (local_rank == 5) || (local_rank == 6) || (local_rank == 7))
-    //         minSide = !minSide;
-    // }
-    // if (level == 2 && depth == 1 && caller == 8) {
-    //     if ((local_rank == 4) || (local_rank == 5) || (local_rank == 6) || (local_rank == 7))
-    //         minSide = !minSide;
-    // }
-    // If called directly, no change in minside
-    // If first level down from caller, right half of caller size splits flipped
 
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
     if (minSide) {
         for (int i = 0; i < local_size; i++) {
             if (local_subarray[i] > recv_buffer[i]) {
@@ -159,6 +164,8 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
             }
         }
     }
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
 
     if ((level == num_procs) && (num_procs != 2))
         bitonic_recurse_fix(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs/2);
@@ -174,13 +181,18 @@ void full_bitonic_merge(int* local_subarray, int num_procs, int local_rank, int 
 
     bitonic_recurse(local_subarray, num_procs, local_rank, local_size, recv_buffer, num_procs, 0, num_procs);
 
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
     make_local_bitonic(local_subarray, local_size, 1);
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
+
     free(recv_buffer);
 
 }
 
 int main(int argc, char* argv[]) {
-    // CALI_CXX_MARK_FUNCTION;
+    CALI_CXX_MARK_FUNCTION;
 
     int rc = 0;
     int num_procs;
@@ -205,34 +217,30 @@ int main(int argc, char* argv[]) {
         return 22; // EINVAL
     }
 
-    // CALI_MARK_BEGIN("data_init_runtime");
+    CALI_MARK_BEGIN("data_init_runtime");
     local_subarray = (int *) malloc(sizeof(int) * input_size/num_procs);
     local_size = setup_input(local_subarray, input_size, argv[2]);
-    // CALI_MARK_END("data_init_runtime");
+    CALI_MARK_END("data_init_runtime");
 
-    // CALI_MARK_BEGIN("comp");
-    // CALI_MARK_BEGIN("comp_large");
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
     if (num_procs == 1) {
         make_local_bitonic(local_subarray, local_size, 1);
     }
     else {
         make_local_bitonic(local_subarray, local_size, 0);
     }
-    // CALI_MARK_END("comp_large");
-    // CALI_MARK_END("comp");
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
     // printf("Process %d: Local sort complete.\n", local_rank);
 
-    // CALI_MARK_BEGIN("comm");
-    // CALI_MARK_BEGIN("comm_large");
     if (num_procs != 1)
         full_bitonic_merge(local_subarray, num_procs, local_rank, local_size);
-    // CALI_MARK_END("comm_large");
-    // CALI_MARK_END("comm");
 
 
-    // CALI_MARK_BEGIN("correctness_check");
+    CALI_MARK_BEGIN("correctness_check");
     rc = verify_sort(local_subarray, local_size, 0);
-    // CALI_MARK_END("correctness_check");
+    CALI_MARK_END("correctness_check");
     if (rc) {
         printf("Process %d: Sort check failed.\n", local_rank);
     } else {
@@ -240,21 +248,21 @@ int main(int argc, char* argv[]) {
     }
 
 
-    // adiak::init(NULL);
-    // adiak::launchdate();    // launch date of the job
-    // adiak::libraries();     // Libraries used
-    // adiak::cmdline();       // Command line used to launch the job
-    // adiak::clustername();   // Name of the cluster
-    // adiak::value("algorithm", "bitonic"); // The name of the algorithm you are using (e.g., "merge", "bitonic")
-    // adiak::value("programming_model", "mpi"); // e.g. "mpi"
-    // adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
-    // adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
-    // adiak::value("input_size", input_size); // The number of elements in input dataset (1000)
-    // adiak::value("input_type", argv[2]); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
-    // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
-    // adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
-    // adiak::value("group_num", 23); // The number of your group (integer, e.g., 1, 10)
-    // adiak::value("implementation_source", "handwritten"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
+    adiak::init(NULL);
+    adiak::launchdate();    // launch date of the job
+    adiak::libraries();     // Libraries used
+    adiak::cmdline();       // Command line used to launch the job
+    adiak::clustername();   // Name of the cluster
+    adiak::value("algorithm", "bitonic"); // The name of the algorithm you are using (e.g., "merge", "bitonic")
+    adiak::value("programming_model", "mpi"); // e.g. "mpi"
+    adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
+    adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
+    adiak::value("input_size", input_size); // The number of elements in input dataset (1000)
+    adiak::value("input_type", argv[2]); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
+    adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+    adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
+    adiak::value("group_num", 23); // The number of your group (integer, e.g., 1, 10)
+    adiak::value("implementation_source", "handwritten"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 
     MPI_Finalize();
     return rc;
