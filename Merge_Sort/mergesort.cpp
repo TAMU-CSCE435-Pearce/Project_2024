@@ -11,11 +11,12 @@ void mergeSort(int *, int *, int, int);
 
 int main(int argc, char** argv) {
 	CALI_CXX_MARK_FUNCTION;
-	CALI_MARK_BEGIN("data_init_runtime");
+	
 	// Create and populate the array
 	int n = atoi(argv[1]);
 	int *original_array = (int*)malloc(n * sizeof(int));
-	
+
+	CALI_MARK_BEGIN("data_init_runtime");
 	int c;
 	srand(time(NULL));
 	printf("This is the unsorted array: ");
@@ -25,7 +26,8 @@ int main(int argc, char** argv) {
 		printf("%d ", original_array[c]);
 		
 	}
-
+	CALI_MARK_END("data_init_runtime");
+	
 	printf("\n");
 	printf("\n");
 	
@@ -136,8 +138,6 @@ int main(int argc, char** argv) {
 	// Finalize MPI
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
-
-	CALI_MARK_END("data_init_runtime");
 }
 
 // Merge Function
