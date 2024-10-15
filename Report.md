@@ -445,6 +445,27 @@ CALI_MARK_END("comp");
 └─ 0.440 correctness_check
 ```
 
+#### Bitonic Sort Calltree:
+```
+209.002 main
+├─ 0.000 MPI_Init
+├─ 0.184 data_init_runtime
+├─ 206.203 comp
+│  └─ 206.203 comp_large
+├─ 0.981 comm
+│  └─ 0.981 comm_large
+│     ├─ 0.627 MPI_Barrier
+│     └─ 0.354 MPI_Sendrecv
+├─ 0.027 correctness_check
+│  ├─ 0.000 MPI_Send
+│  └─ 0.005 MPI_Recv
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.009 MPI_Comm_dup
+```
+
+
 #### Radix Sort Calltree:
 ```
 # MPI Radix Sort
@@ -493,6 +514,26 @@ adiak::value("implementation_source", implementation_source); // Where you got t
 ```
 
 They will show up in the `Thicket.metadata` if the caliper file is read into Thicket.
+
+#### Bitonic Sort Metadata:
+Columns:
+```
+Index(['cali.caliper.version', 'mpi.world.size', 'spot.metrics',
+       'spot.timeseries.metrics', 'spot.format.version', 'spot.options',
+       'spot.channels', 'cali.channel', 'spot:node.order', 'spot:output',
+       'spot:profile.mpi', 'spot:region.count', 'spot:time.exclusive',
+       'spot:time.variance', 'launchdate', 'libraries', 'cmdline', 'cluster',
+       'algorithm', 'programming_model', 'data_type', 'size_of_data_type',
+       'input_size', 'input_type', 'num_procs', 'scalability', 'group_num',
+       'implementation_source'],
+      dtype='object')
+```
+Values:
+
+![alt text](report_img/bitonic/metadata_1.PNG)
+![alt text](report_img/bitonic/metadata_2.PNG)
+![alt text](report_img/bitonic/metadata_3.PNG)
+
 #### Radix Sort Metadata:
 ```
 # Metadata Columns
