@@ -51,18 +51,28 @@ int main(int argc, char** argv) {
 	adiak::value("num_procs", world_size); // The number of processors (MPI ranks)
 	adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
 	adiak::value("group_num", 10); // The number of your group (integer, e.g., 1, 10)
-	adiak::value("implementation_source", "handwritten"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
+	adiak::value("implementation_source", "online"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 		
 	// Divide the array in equal-sized chunks
-	int size = n/world_size;
+	int size = n / world_size;
 	
 	// Send each subarray to each process
 	int *sub_array = (int*)malloc(size * sizeof(int));
+
+	CALI_MARK_BEGIN("comm");
+	CALI_MARK_BEGIN("comm_large");
 	MPI_Scatter(original_array, size, MPI_INT, sub_array, size, MPI_INT, 0, MPI_COMM_WORLD);
+	CALI_MARK_END("comm_large");
+	CALI_MARK_END("comm");
 	
 	// Perform the mergesort on each process
 	int *tmp_array = (int*)malloc(size * sizeof(int));
+
+	CALI_MARK_BEGIN("comp");
+	CALI_MARK_BEGIN("comp_large");
 	mergeSort(sub_array, tmp_array, 0, (size - 1));
+	CALI_MARK_END("comp_large");
+	CALI_MARK_END("comp");
 	
 	// Gather the sorted subarrays into one
 	int *sorted = NULL;
@@ -72,7 +82,11 @@ int main(int argc, char** argv) {
 		
 	}
 	
+	CALI_MARK_BEGIN("comm");
+	CALI_MARK_BEGIN("comm_large");
 	MPI_Gather(sub_array, size, MPI_INT, sorted, size, MPI_INT, 0, MPI_COMM_WORLD);
+	CALI_MARK_END("comm_large");
+	CALI_MARK_END("comm");
 	
 	// Make the final mergeSort call
 	if(world_rank == 0) {
@@ -91,6 +105,7 @@ int main(int argc, char** argv) {
 		printf("\n");
 		printf("\n");
 
+		CALI_MARK_BEGIN("correctness_check");
 		// Check if the array is sorted
 		bool sortedCheck = true;
 		for(int x = 0; x < n - 1; ++x) {
@@ -105,6 +120,7 @@ int main(int argc, char** argv) {
 		else {
 			printf("This array is not sorted.");
 		}
+		CALI_MARK_END("correctness_check");
 			
 		// Clean up root
 		free(sorted);
