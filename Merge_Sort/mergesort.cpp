@@ -1,13 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <mpi.h>
+
+#include <caliper/cali.h>
+#include <caliper/cali-manager.h>
+#include <adiak.hpp>
 
 void merge(int *, int *, int, int, int);
 void mergeSort(int *, int *, int, int);
 
 int main(int argc, char** argv) {
-	
+	CALI_CXX_MARK_FUNCTION;
+	CALI_MARK_BEGIN("data_init_runtime");
 	// Create and populate the array
 	int n = atoi(argv[1]);
 	int *original_array = (int*)malloc(n * sizeof(int));
@@ -20,7 +24,7 @@ int main(int argc, char** argv) {
 		original_array[c] = rand() % n;
 		printf("%d ", original_array[c]);
 		
-		}
+	}
 
 	printf("\n");
 	printf("\n");
@@ -32,6 +36,22 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+	adiak::init(NULL);
+	adiak::launchdate();    // launch date of the job
+	adiak::libraries();     // Libraries used
+	adiak::cmdline();       // Command line used to launch the job
+	adiak::clustername();   // Name of the cluster
+	adiak::value("algorithm", "merge"); // The name of the algorithm you are using (e.g., "merge", "bitonic")
+	adiak::value("programming_model", "mpi"); // e.g. "mpi"
+	adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
+	adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
+	adiak::value("input_size", n); // The number of elements in input dataset (1000)
+	adiak::value("input_type", "Random"); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
+	adiak::value("num_procs", world_size); // The number of processors (MPI ranks)
+	adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
+	adiak::value("group_num", 10); // The number of your group (integer, e.g., 1, 10)
+	adiak::value("implementation_source", "handwritten"); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 		
 	// Divide the array in equal-sized chunks
 	int size = n/world_size;
@@ -70,12 +90,27 @@ int main(int argc, char** argv) {
 			
 		printf("\n");
 		printf("\n");
+
+		// Check if the array is sorted
+		bool sortedCheck = true;
+		for(int x = 0; x < n - 1; ++x) {
+			if(sorted[x] > sorted[x + 1]) {
+				sortedCheck = false;
+				break;
+			}
+		}
+		if(sortedCheck) {
+			printf("This array is sorted.");
+		}
+		else {
+			printf("This array is not sorted.");
+		}
 			
 		// Clean up root
 		free(sorted);
 		free(other_array);
 			
-		}
+	}
 	
 	// Clean up rest
 	free(original_array);
@@ -85,6 +120,8 @@ int main(int argc, char** argv) {
 	// Finalize MPI
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
+
+	CALI_MARK_END("data_init_runtime");
 }
 
 // Merge Function
