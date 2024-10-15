@@ -445,7 +445,7 @@ CALI_MARK_END("comp");
 └─ 0.440 correctness_check
 ```
 
-### Bitonic Sort Calltree:
+#### Bitonic Sort Calltree:
 ```
 209.002 main
 ├─ 0.000 MPI_Init
@@ -515,7 +515,7 @@ adiak::value("implementation_source", implementation_source); // Where you got t
 
 They will show up in the `Thicket.metadata` if the caliper file is read into Thicket.
 
-### Bitonic Sort Metadata:
+#### Bitonic Sort Metadata:
 Columns:
 ```
 Index(['cali.caliper.version', 'mpi.world.size', 'spot.metrics',
