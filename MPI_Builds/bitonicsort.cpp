@@ -10,7 +10,7 @@
 *   https://www.geeksforgeeks.org/bitonic-sort/
 *   https://en.wikipedia.org/wiki/Bitonic_sorter
 * AUTHOR: Brandon Cisneros
-* LAST REVISED: 10/14/2024
+* LAST REVISED: 10/15/2024
 ******************************************************************************/
 
 #include <stdio.h>
@@ -138,8 +138,6 @@ void bitonic_recurse(int* local_subarray, int num_procs, int local_rank, int loc
     // NEED ALTERNATING MIN
     bool minSide;
     minSide = (local_rank < partner);
-
-    // TODO: ADIAK, CALLIPER, SCRIPT, RUN
 
     // Flips based on caller level splits
     if (caller != level) {
