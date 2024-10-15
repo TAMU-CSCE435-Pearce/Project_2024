@@ -1,0 +1,29 @@
+#!/bin/bash
+##ENVIRONMENT SETTINGS; CHANGE WITH CAUTION
+#SBATCH --export=NONE            #Do not propagate environment
+#SBATCH --get-user-env=L         #Replicate login environment
+#
+##NECESSARY JOB SPECIFICATIONS
+#SBATCH --job-name=JobName       #Set the job name to "JobName"
+#SBATCH --time={wall_clock_time}           #Set the wall clock limit
+#SBATCH --nodes={node_count}               #Request nodes
+#SBATCH --ntasks-per-node={tasks_per_node}    # Request tasks/cores per node
+#SBATCH --mem={memory_per_node}                 #Request GB per node 
+#SBATCH --output={output_path}.%j       #Send stdout/err to "output.[jobID]" 
+#
+##OPTIONAL JOB SPECIFICATIONS
+##SBATCH --mail-type=ALL              #Send email on all job events
+##SBATCH --mail-user=email_address    #Send all emails to email_address 
+#
+##First Executable Line
+#
+#array_size=$1
+#processes=$2
+
+module load intel/2020b       # load Intel software stack
+module load CMake/3.12.1
+module load GCCcore/8.3.0
+
+CALI_CONFIG="spot(output={output_path}.cali, \
+    time.variance,profile.mpi)" \
+mpirun -np {process_count} {executable_path} {array_size} {input_type}
