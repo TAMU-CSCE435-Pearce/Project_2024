@@ -18,29 +18,52 @@ int main(int argc, char** argv) {
 	int n = atoi(argv[1]);
 	int *original_array = (int*)malloc(n * sizeof(int));
 	std::string array_type = argv[2];
+	
+	printf("\n");
+	printf("\n");
+	
+	// Initialize MPI
+	int world_rank;
+	int world_size;
+	
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+	// if(world_rank == 0) {
+	// 	printf("World size: %d\n", world_size);
+	// }
 
 	CALI_MARK_BEGIN("data_init_runtime");
-	if(array_type == "Random\n") {
+	if(array_type == "Random") {
 		srand(time(NULL));
-		printf("Random");
+		if(world_rank == 0) {
+			printf("Random\n");
+		}
 		for(int i = 0; i < n; i++) {
 			original_array[i] = rand() % n;
 		}
 	}
-	else if(array_type == "Sorted\n") {
-		printf("Sorted");
+	else if(array_type == "Sorted") {
+		if(world_rank == 0) {
+			printf("Sorted\n");
+		}
 		for(int i = 0; i < n; i++) {
             original_array[i] = i;
         }
 	}
 	else if(array_type == "ReverseSorted") {
-		printf("ReverseSorted\n");
+		if(world_rank == 0) {
+			printf("ReverseSorted\n");
+		}
 		for(int i = 0; i < n; ++i) {
             original_array[i] = n - i;
         }
 	}
 	else if(array_type == "1_perc_perturbed") {
-		printf("1_perc_perturbed\n");
+		if(world_rank == 0) {
+			printf("1_perc_perturbed\n");
+		}
 		int start = (int)(0.01 * n + 0.999);
 		srand(time(NULL));  // Seed for random number generation
 
@@ -54,19 +77,13 @@ int main(int argc, char** argv) {
 			int random_index = rand() % n;  // Select a random index in the array
 			original_array[random_index] = rand() % n;  // Replace element with a random value
 		}
+		// if(world_rank == 0) {
+		// 	for(int i = 0; i < n; ++i) {
+		// 		printf("%d ", original_array[i]);
+		// 	}
+		// }
 	}
 	CALI_MARK_END("data_init_runtime");
-	
-	printf("\n");
-	printf("\n");
-	
-	// Initialize MPI
-	int world_rank;
-	int world_size;
-	
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
 	adiak::init(NULL);
 	adiak::launchdate();    // launch date of the job
