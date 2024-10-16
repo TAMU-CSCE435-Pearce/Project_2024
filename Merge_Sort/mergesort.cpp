@@ -182,7 +182,9 @@ int main(int argc, char** argv) {
 	free(tmp_array);
 	
 	// Finalize MPI
+	CALI_MARK_BEGIN("comm");
 	MPI_Barrier(MPI_COMM_WORLD);
+	CALI_MARK_END("comm");
 	MPI_Finalize();
 }
 
