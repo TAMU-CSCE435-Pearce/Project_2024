@@ -85,14 +85,19 @@ bool check_correctness(const std::vector<int>& arr) {
 }
 
 int main(int argc, char** argv) {
+    CALI_CXX_MARK_FUNCTION;
     MPI_Init(&argc, &argv);
 
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    //Create caliper ConfigManager object
+    cali::ConfigManager mgr;
+    mgr.start();
+
     // Define the array size
-    int num_elements = 1024;  // Adjust the size as necessary
+    int num_elements = atoi(argv[1]);  // Adjust the size as necessary
 
     std::vector<int> arr;
     if (rank == 0) {
@@ -100,9 +105,12 @@ int main(int argc, char** argv) {
         CALI_MARK_BEGIN("data_initialization");
         srand(time(nullptr));
         arr.resize(num_elements);
+        std::cout << "Initial random array: ";
         for (int i = 0; i < num_elements; i++) {
             arr[i] = rand() % 10000;  // Random values
+            std::cout << arr[i] << " ";
         }
+        std::cout << std::endl << std::endl;
         CALI_MARK_END("data_initialization");
     }
 
@@ -117,6 +125,12 @@ int main(int argc, char** argv) {
         bool sorted = check_correctness(arr);
         CALI_MARK_END("correctness_check");
 
+        std::cout << "Sorted array: ";
+        for (int i = 0; i < num_elements; i++) {
+            std::cout << arr[i] << " ";
+        }
+        std::cout << std::endl << std::endl;
+
         if (sorted) {
             std::cout << "Array is sorted correctly." << std::endl;
         } else {
@@ -124,8 +138,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Finalize Caliper and MPI
-    cali_mpi_finalize();
+    //Flush Caliper output before finalizing MPI
+    mgr.stop();
+    mgr.flush();
     MPI_Finalize();
     return 0;
 }
