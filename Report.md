@@ -327,3 +327,30 @@ MPI_Finalize();
 We will be working through arrays of sizes 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28. We will test the sorting speed of presorted, randomly sorted, reverse sorted, and 1% perturbed. 
 
 We will also test the all of these with increasing processors in range 2, 4, 8 ,16, 32, 64, 128, 256, 512, and 1024. At the end we will have run 280 sorts one for each array size with each array type and each processor count. This will allow us to analyze and understand the advantages and disadvantages of all sorting algorithms tested.
+
+
+### 3a. Caliper instrumentation
+
+Merge Sort
+
+96.017 main
+├─ 0.000 MPI_Init
+├─ 5.792 data_init_runtime
+├─ 24.045 comm
+│  ├─ 0.808 comm_large
+│  │  ├─ 0.437 MPI_Scatter
+│  │  └─ 0.371 MPI_Gather
+│  └─ 23.237 MPI_Barrier
+├─ 42.682 comp
+│  └─ 42.682 comp_large
+├─ 0.711 correctness_check
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.000 MPI_Comm_dup
+
+### 3b. Collect Metadata
+
+Merge Sort
+
+![Merge Sort Metadata](AdditionalImages/MergeSortMetaData)
