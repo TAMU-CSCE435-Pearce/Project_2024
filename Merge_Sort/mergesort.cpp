@@ -6,6 +6,8 @@
 #include <caliper/cali-manager.h>
 #include <adiak.hpp>
 
+#include <string>
+
 void merge(int *, int *, int, int, int);
 void mergeSort(int *, int *, int, int);
 
@@ -15,16 +17,43 @@ int main(int argc, char** argv) {
 	// Create and populate the array
 	int n = atoi(argv[1]);
 	int *original_array = (int*)malloc(n * sizeof(int));
+	std::string array_type = argv[2];
 
 	CALI_MARK_BEGIN("data_init_runtime");
-	int c;
-	srand(time(NULL));
-	printf("This is the unsorted array: ");
-	for(c = 0; c < n; c++) {
-		
-		original_array[c] = rand() % n;
-		printf("%d ", original_array[c]);
-		
+	if(array_type == "Random\n") {
+		srand(time(NULL));
+		printf("Random");
+		for(int i = 0; i < n; i++) {
+			original_array[i] = rand() % n;
+		}
+	}
+	else if(array_type == "Sorted\n") {
+		printf("Sorted");
+		for(int i = 0; i < n; i++) {
+            original_array[i] = i;
+        }
+	}
+	else if(array_type == "ReverseSorted") {
+		printf("ReverseSorted\n");
+		for(int i = 0; i < n; ++i) {
+            original_array[i] = n - i;
+        }
+	}
+	else if(array_type == "1_perc_perturbed") {
+		printf("1_perc_perturbed\n");
+		int start = (int)(0.01 * n + 0.999);
+		srand(time(NULL));  // Seed for random number generation
+
+		// Initialize the array in ascending order
+		for (int i = 0; i < n; ++i) {
+			original_array[i] = i;
+		}
+
+		// Randomly perturb 'start' elements
+		for (int i = 0; i < start; ++i) {
+			int random_index = rand() % n;  // Select a random index in the array
+			original_array[random_index] = rand() % n;  // Replace element with a random value
+		}
 	}
 	CALI_MARK_END("data_init_runtime");
 	
@@ -49,7 +78,7 @@ int main(int argc, char** argv) {
 	adiak::value("data_type", "int"); // The datatype of input elements (e.g., double, int, float)
 	adiak::value("size_of_data_type", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
 	adiak::value("input_size", n); // The number of elements in input dataset (1000)
-	adiak::value("input_type", "Random"); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
+	adiak::value("input_type", array_type.c_str()); // For sorting, this would be choices: ("Sorted", "ReverseSorted", "Random", "1_perc_perturbed")
 	adiak::value("num_procs", world_size); // The number of processors (MPI ranks)
 	adiak::value("scalability", "strong"); // The scalability of your algorithm. choices: ("strong", "weak")
 	adiak::value("group_num", 10); // The number of your group (integer, e.g., 1, 10)
@@ -98,11 +127,11 @@ int main(int argc, char** argv) {
 		
 		// Display the sorted array
 		printf("This is the sorted array: ");
-		for(c = 0; c < n; c++) {
+		for(int i = 0; i < n; i++) {
 			
-			printf("%d ", sorted[c]);
+			printf("%d ", sorted[i]);
 			
-			}
+		}
 			
 		printf("\n");
 		printf("\n");
