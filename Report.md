@@ -333,6 +333,7 @@ We will also test the all of these with increasing processors in range 2, 4, 8 ,
 
 Merge Sort
 
+```
 96.017 main
 ├─ 0.000 MPI_Init
 ├─ 5.792 data_init_runtime
@@ -348,9 +349,9 @@ Merge Sort
 ├─ 0.000 MPI_Initialized
 ├─ 0.000 MPI_Finalized
 └─ 0.000 MPI_Comm_dup
+```
 
 ### 3b. Collect Metadata
 
 Merge Sort
 
-![Merge Sort Metadata](./AdditionalImages/MergeSortMetaData)
