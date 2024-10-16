@@ -353,4 +353,4 @@ Merge Sort
 
 Merge Sort
 
-![Merge Sort Metadata](AdditionalImages/MergeSortMetaData)
+![Merge Sort Metadata](./AdditionalImages/MergeSortMetaData)
