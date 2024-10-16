@@ -331,6 +331,25 @@ We will also test the all of these with increasing processors in range 2, 4, 8 ,
 
 ### 3a. Caliper instrumentation
 
+Bitonic Sort
+
+```
+1.507 main
+├─ 0.000 MPI_Init
+├─ 0.027 data_init_runtime
+├─ 0.877 comm
+│  ├─ 0.015 MPI_Scatter
+│  └─ 0.862 comp
+│     ├─ 0.823 comp_large
+│     └─ 0.001 comm_small
+│        └─ 0.001 MPI_Sendrecv
+├─ 0.000 MPI_Finalize
+├─ 0.015 ve@
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.008 MPI_Comm_dup
+```
+
 Merge Sort
 
 ```
