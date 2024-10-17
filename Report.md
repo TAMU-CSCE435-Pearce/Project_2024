@@ -161,6 +161,12 @@ main () {
 
 - Merge Sort Pseudocode
 - Inputs is your global array
+1. Initialize MPI
+2. Divide the array evenly among processes
+3. Perform sequential merge sort on subarray on each process
+4. Gather subarrays at the root process
+5. Perform merge sort on combined array
+6. Finalize MPI
 
 ```
 main() {
