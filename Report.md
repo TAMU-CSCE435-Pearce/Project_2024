@@ -390,6 +390,24 @@ Merge Sort
 └─ 0.000 MPI_Comm_dup
 ```
 
+Radix Sort 
+```
+0.349 main_comp
+├─ 0.000 MPI_Comm_free
+├─ 0.002 MPI_Comm_split
+├─ 0.181 comm
+│  └─ 0.181 comm_large
+│     ├─ 0.292 MPI_Recv
+│     └─ 0.001 MPI_Send
+├─ 0.159 comp
+│  ├─ 0.318 comp_large
+│  │  ├─ 0.001 MPI_Allgather
+│  │  ├─ 0.003 MPI_Allgatherv
+│  │  └─ 0.000 MPI_Barrier
+│  └─ 0.000 comp_small
+├─ 0.002 correctness_check
+└─ 0.010 data_init_runtime
+```
 ### 3b. Collect Metadata
 
 We collect the following metadata for our implementations: the launch date of the job, the libraries used, the command line used to launch the job, the name of the cluster, the name of the algorithm you are using, the programming model, he datatype of input elements, the size of the datatype, the number of elements in input dataset, the input type of array, the number of processors, the scalability of our algorithms, the number of your group, and where we got the source code of our algorithm.
