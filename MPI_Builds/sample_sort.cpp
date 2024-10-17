@@ -294,7 +294,7 @@ int main (int argc, char *argv[]) {
     // }
 
     CALI_MARK_BEGIN("correctness_check");
-    rc = verify_sort(final_subarray, n, 0);
+    rc = verify_sort(final_subarray, local_size, 0);
     CALI_MARK_END("correctness_check");
 
     if (rc) {
