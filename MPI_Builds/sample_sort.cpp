@@ -72,7 +72,7 @@ int main (int argc, char *argv[]) {
     CALI_MARK_END("data_init_runtime");
 
     CALI_MARK_BEGIN("comp");
-    CALI_MARK_BEGIN("comp_large"); // large local computation is quick sort
+    CALI_MARK_BEGIN("comp_large"); // quick sort of all local subarrays is large
     // for each process
     // sort each subarray using quicksort
     quicksort(local_subarray, 0, local_size-1);
@@ -85,38 +85,43 @@ int main (int argc, char *argv[]) {
 
     // send process 0 (Master) `s` elements (MPI_Send)
     if (taskid != 0) {
-        CALI_MARK_BEGIN("comm");
         // if not in process 0 send to process 0
         int sample_send[s];
         for (int i=0; i<s; i++) {
             sample_send[i] = local_subarray[i*local_size/s];
         }
+
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_small"); // broadcasting s elements and receiving p-1 elements
+
         MPI_Send(&sample_send, s, MPI_INT, 0, TO_MASTER, MPI_COMM_WORLD);
 
         // receive splitter array from process 0
         MPI_Recv(&splitter_subarray, p-1, MPI_INT, 0, FROM_MASTER, MPI_COMM_WORLD, &status);
+        CALI_MARK_END("comm_small");
         CALI_MARK_END("comm");
     }
     else {
-        CALI_MARK_BEGIN("comm");
         // if in process 0 set up array to hold all samples - size p * s
         int* sample_subarray = new int[p*s];
         // fill in first s spots with sample
         for (int i=0; i<s; i++) {
             sample_subarray[i] = local_subarray[i*local_size/s];
         }
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_small"); // receiving s elements from each process
         // process 0 receives `s` elements (MPI_Recv)
         for (int i=1; i<p; i++) {
             MPI_Recv(&sample_subarray[i*s], s, MPI_INT, i, TO_MASTER, MPI_COMM_WORLD, &status);
         }
-
+        CALI_MARK_END("comm_small");
         CALI_MARK_END("comm");
 
         CALI_MARK_BEGIN("comp");
-        CALI_MARK_BEGIN("comp_large"); 
+        CALI_MARK_BEGIN("comp_small"); // only sorts sample size : s*p
         // process 0 sorts elements with quicksort
         quicksort(sample_subarray, 0, p*s-1);
-        CALI_MARK_END("comp_large");
+        CALI_MARK_END("comp_small");
         CALI_MARK_END("comp");
 
         // process 0 chooses `p-1` splitters
@@ -125,10 +130,14 @@ int main (int argc, char *argv[]) {
             splitter_subarray[i-1] = sample_subarray[i*s];
         }
 
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_small"); // only sending splitters = p-1
         // process 0 sends splitters to all processes (MPI_Send)
         for (int i=1; i<p; i++) {
             MPI_Send(&splitter_subarray, p-1, MPI_INT, i, FROM_MASTER, MPI_COMM_WORLD);
         }
+        CALI_MARK_END("comm_small");
+        CALI_MARK_END("comm");
     }
 
     // wait until every process has received splitters
@@ -170,7 +179,11 @@ int main (int argc, char *argv[]) {
                 bucket_singular[j] = bucket_arrays[i][j];
             }
 
+            CALI_MARK_BEGIN("comm");
+            CALI_MARK_BEGIN("comm_large"); // sending all bucket elements to other processes
             MPI_Send(&(bucket_singular), local_size, MPI_INT, i, TO_OTHER + i, MPI_COMM_WORLD);     
+            CALI_MARK_END("comm_large");
+            CALI_MARK_END("comm");
         }
     }
 
@@ -188,7 +201,12 @@ int main (int argc, char *argv[]) {
     // processes received buckets (MPI_Allgather)
     for (int i=0; i<p; i++) {
         if (taskid != i) {
+            CALI_MARK_BEGIN("comm");
+            CALI_MARK_BEGIN("comm_large"); // receiving buckets
             MPI_Recv(&received_buckets[received_count*local_size], local_size, MPI_INT, i, TO_OTHER + taskid, MPI_COMM_WORLD, &status);
+            CALI_MARK_END("comm_large");
+            CALI_MARK_END("comm");
+
             received_count += 1;
         }
         else {
@@ -208,17 +226,18 @@ int main (int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-
-    CALI_MARK_BEGIN("comm");
     // send received buckets to process 0 (MPI_Send)
     if (taskid > 0) {
         int received_singular[n];
         for (int i=0; i<n; i++) {
             received_singular[i] = received_buckets[i];
         }
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_large"); // sending entire received buckets to process 0
         MPI_Send(&received_singular, n, MPI_INT, 0, TO_MASTER, MPI_COMM_WORLD);   
+        CALI_MARK_END("comm_large");
+        CALI_MARK_END("comm");
     }
-    CALI_MARK_END("comm");
 
     int rc;
 
@@ -248,10 +267,13 @@ int main (int argc, char *argv[]) {
             }
         }
 
-        CALI_MARK_BEGIN("comm");
         // for other processes' arrays
         for (int i=1; i<p; i++) {
+            CALI_MARK_BEGIN("comm");
+            CALI_MARK_BEGIN("comm_large"); // receive all from other processes
             MPI_Recv(&received_array, n, MPI_INT, i, TO_MASTER, MPI_COMM_WORLD, &status);
+            CALI_MARK_END("comm_large");
+            CALI_MARK_END("comm");
 
             for (int j=0; j<n; j++) {
                 if (received_array[j] != -1) {
@@ -263,14 +285,16 @@ int main (int argc, char *argv[]) {
 
         // send mini finalized arrays back to other processes
         for (int i=1; i<p; i++) {
+            CALI_MARK_BEGIN("comm");
+            CALI_MARK_BEGIN("comm_large"); // send all to other processes
             MPI_Send(&final_array[i*local_size], local_size, MPI_INT, i, FROM_MASTER, MPI_COMM_WORLD);   
+            CALI_MARK_END("comm_large");
+            CALI_MARK_END("comm");
         }
         // for process 0
         for (int i=0; i<local_size; i++) {
             final_subarray[i] = final_array[i];
         }
-
-        CALI_MARK_END("comm");
 
         // print final output
         // for (int i=0; i<n; i++) {
@@ -280,14 +304,16 @@ int main (int argc, char *argv[]) {
         // process 0 returns sorted bucket 0, bucket 1, ..., bucket `p-1`
     }
 
-    CALI_MARK_BEGIN("comm");
-
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (taskid != 0) {
+        CALI_MARK_BEGIN("comm");
+        CALI_MARK_BEGIN("comm_large"); // size n/p
         MPI_Recv(&final_subarray, local_size, MPI_INT, 0, FROM_MASTER, MPI_COMM_WORLD, &status);
+        CALI_MARK_END("comm_large");
+        CALI_MARK_END("comm");
+
     }
-    CALI_MARK_END("comm");
 
     // for (int i=0; i<local_size; i++) {
     //     printf("final[%d] : %d, process : %d\n", i, final_subarray[i], taskid);
