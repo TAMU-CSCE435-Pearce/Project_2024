@@ -98,16 +98,18 @@ main() {
 
 - Sample Sort Pseudocode 
 - Inputs is your global array
-
+```c
 main () {
     // Initialization 
-    arr = input array MPI_Init(); 
+    arr = input array 
+    MPI_Init(); 
 
     int num_proc, rank; 
     MPI_COMM_RANK(MPI_COMM_WORLD, &rank) 
     MPI_COMM_SIZE(MPI_COMM_WORLD, &num_proc) size = arr / num_proc 
 
-    // Distribute data if (rank == 0) { 
+    // Distribute data 
+    if (rank == 0) { 
         localArr = arr with 'size' amount of elements MPI_Scatter(arr, size, localArr) 
     } 
 
@@ -151,6 +153,7 @@ main () {
     // Finalize MPI 
     MPI_Finalize();
 }
+```
 
 - Merge Sort Pseudocode
     - Inputs is your global array
