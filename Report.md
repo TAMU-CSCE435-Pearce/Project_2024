@@ -26,6 +26,14 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 - Bitonic Sort Pseudocode
 - Inputs is your global array
 
+1. Seed the array in the parent process
+2. Scatter the values to the processes
+3. Sort each process into a bitonic sequence
+4. Send values between each partner process
+5. Keep swapping until we reach a sorted array
+6. Gather all the process values back into the master
+7. Check for correctness and finalize
+
 ```
 //Bitonic Merge
 bitonicMerge(data, low, count, direction) {
