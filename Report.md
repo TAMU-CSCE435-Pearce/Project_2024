@@ -465,6 +465,31 @@ CALI_MARK_END("comp");
 └─ 0.009 MPI_Comm_dup
 ```
 
+#### Sample Sort Calltree:
+```
+0.548 main
+├─ 0.000 MPI_Init
+├─ 0.000 data_init_runtime
+├─ 0.030 comp
+│  ├─ 0.030 comp_large
+│  └─ 0.000 comp_small
+├─ 0.003 comm
+│  ├─ 0.002 comm_small
+│  │  ├─ 0.002 MPI_Recv
+│  │  └─ 0.000 MPI_Send
+│  └─ 0.000 comm_large
+│     ├─ 0.000 MPI_Send
+│     └─ 0.000 MPI_Recv
+├─ 0.005 MPI_Barrier
+├─ 0.000 correctness_check
+│  ├─ 0.000 MPI_Send
+│  └─ 0.000 MPI_Recv
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.000 MPI_Comm_dup
+```
+
 #### Merge Sort Calltree:
 ```
 21.673 main
@@ -552,6 +577,28 @@ Values:
 ![alt text](report_img/bitonic/metadata_1.PNG)
 ![alt text](report_img/bitonic/metadata_2.PNG)
 ![alt text](report_img/bitonic/metadata_3.PNG)
+
+#### Sample Sort Metadata:
+Columns:
+```
+Index(['cali.caliper.version', 'mpi.world.size', 'spot.metrics',
+       'spot.timeseries.metrics', 'spot.format.version', 'spot.options',
+       'spot.channels', 'cali.channel', 'spot:node.order', 'spot:output',
+       'spot:profile.mpi', 'spot:region.count', 'spot:time.exclusive',
+       'spot:time.variance', 'launchdate', 'libraries', 'cmdline', 'cluster',
+       'algorithm', 'programming_model', 'data_type', 'size_of_data_type',
+       'input_size', 'num_procs', 'scalability', 'group_num',
+       'implementation_source'],
+      dtype='object')
+```
+Values:
+
+![alt text](report_img/sample/image_1.png)
+![alt text](report_img/sample/image_2.png)
+![alt text](report_img/sample/image_3.png)
+![alt text](report_img/sample/image_4.png)
+
+
 
 #### Merge Sort Metadata:
 Columns:
