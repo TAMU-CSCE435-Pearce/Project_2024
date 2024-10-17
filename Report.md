@@ -26,6 +26,7 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 - Bitonic Sort Pseudocode
 - Inputs is your global array
 
+```
 //Bitonic Merge
 bitonicMerge(data, low, count, direction) {
     if (count > 1)
@@ -95,10 +96,12 @@ main() {
     MPI_Finalize();
     return 0;
 }
+```
 
 - Sample Sort Pseudocode 
 - Inputs is your global array
-```c
+
+```
 main () {
     // Initialization 
     arr = input array 
@@ -154,11 +157,12 @@ main () {
     MPI_Finalize();
 }
 ```
+```
 
 - Merge Sort Pseudocode
-    - Inputs is your global array
+- Inputs is your global array
 
-```c
+```
 main() {
     // Initialize an unsorted array (arr)
     arr = unsorted array;
@@ -199,9 +203,7 @@ main() {
     // Finalize MPI
     MPI_Finalize();
 }
-```
 
-```c
 mergeSort(arr) {
     // Base case: If array has only one element, it is already sorted
     if left < right {
@@ -218,8 +220,7 @@ mergeSort(arr) {
         merge(arr, left, mid, right);
     }
 }
-```
-```c
+
 merge(arr, left, mid, right) {
     // Allocate a temporary array to store the merged result
     tempArr = temporary array of size (right - left + 1)
@@ -263,10 +264,11 @@ merge(arr, left, mid, right) {
     }
 }
 ```
-- Radix Sort Pseudocode
-    - Inputs is your global array
 
-```c
+- Radix Sort Pseudocode
+- Inputs is your global array
+
+```
 main() {
 // Initialize MPI
 MPI_Init(&argc, &argv);
@@ -330,3 +332,87 @@ MPI_Finalize();
 We will be working through arrays of sizes 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28. We will test the sorting speed of presorted, randomly sorted, reverse sorted, and 1% perturbed. 
 
 We will also test the all of these with increasing processors in range 2, 4, 8 ,16, 32, 64, 128, 256, 512, and 1024. At the end we will have run 280 sorts one for each array size with each array type and each processor count. This will allow us to analyze and understand the advantages and disadvantages of all sorting algorithms tested.
+
+
+### 3a. Caliper instrumentation
+
+Bitonic Sort
+
+```
+1.507 main
+├─ 0.000 MPI_Init
+├─ 0.027 data_init_runtime
+├─ 0.877 comm
+│  ├─ 0.015 MPI_Scatter
+│  └─ 0.862 comp
+│     ├─ 0.823 comp_large
+│     └─ 0.001 comm_small
+│        └─ 0.001 MPI_Sendrecv
+├─ 0.000 MPI_Finalize
+├─ 0.015 ve@
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.008 MPI_Comm_dup
+```
+Sample Sort
+```
+65.972 main
+├─ 0.000 MPI_Init
+├─ 2.780 data_init_runtime
+├─ 4.374 comm
+│  ├─ 2.782 MPI_Bcast
+│  ├─ 0.378 comm_small
+│  │  └─ 0.378 MPI_Scatter
+│  ├─ 0.634 MPI_Gather
+│  └─ 0.580 MPI_Alltoall
+├─ 53.208 comp
+├─ 0.000 MPI_Bcast
+├─ 0.704 correctness_check
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 1.667 MPI_Comm_dup
+
+```
+
+Merge Sort
+
+```
+96.017 main
+├─ 0.000 MPI_Init
+├─ 5.792 data_init_runtime
+├─ 24.045 comm
+│  ├─ 0.808 comm_large
+│  │  ├─ 0.437 MPI_Scatter
+│  │  └─ 0.371 MPI_Gather
+│  └─ 23.237 MPI_Barrier
+├─ 42.682 comp
+│  └─ 42.682 comp_large
+├─ 0.711 correctness_check
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.000 MPI_Comm_dup
+```
+
+Radix Sort 
+```
+0.349 main_comp
+├─ 0.000 MPI_Comm_free
+├─ 0.002 MPI_Comm_split
+├─ 0.181 comm
+│  └─ 0.181 comm_large
+│     ├─ 0.292 MPI_Recv
+│     └─ 0.001 MPI_Send
+├─ 0.159 comp
+│  ├─ 0.318 comp_large
+│  │  ├─ 0.001 MPI_Allgather
+│  │  ├─ 0.003 MPI_Allgatherv
+│  │  └─ 0.000 MPI_Barrier
+│  └─ 0.000 comp_small
+├─ 0.002 correctness_check
+└─ 0.010 data_init_runtime
+```
+### 3b. Collect Metadata
+
+We collect the following metadata for our implementations: the launch date of the job, the libraries used, the command line used to launch the job, the name of the cluster, the name of the algorithm you are using, the programming model, he datatype of input elements, the size of the datatype, the number of elements in input dataset, the input type of array, the number of processors, the scalability of our algorithms, the number of your group, and where we got the source code of our algorithm.

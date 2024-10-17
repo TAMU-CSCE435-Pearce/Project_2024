@@ -143,12 +143,12 @@ int main(int argc, char** argv) {
 		mergeSort(sorted, other_array, 0, (n - 1));
 		
 		// Display the sorted array
-		printf("This is the sorted array: ");
-		for(int i = 0; i < n; i++) {
+		// printf("This is the sorted array: ");
+		// for(int i = 0; i < n; i++) {
 			
-			printf("%d ", sorted[i]);
+		// 	printf("%d ", sorted[i]);
 			
-		}
+		// }
 			
 		printf("\n");
 		printf("\n");
@@ -182,7 +182,9 @@ int main(int argc, char** argv) {
 	free(tmp_array);
 	
 	// Finalize MPI
+	CALI_MARK_BEGIN("comm");
 	MPI_Barrier(MPI_COMM_WORLD);
+	CALI_MARK_END("comm");
 	MPI_Finalize();
 }
 
