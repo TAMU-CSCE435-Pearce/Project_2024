@@ -335,7 +335,7 @@ We will also test the all of these with increasing processors in range 2, 4, 8 ,
 
 
 ### 3a. Caliper instrumentation
-
+```
 Bitonic Sort
 
 ```
