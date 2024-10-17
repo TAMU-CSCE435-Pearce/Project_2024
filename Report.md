@@ -273,64 +273,133 @@ merge(arr, left, mid, right) {
 
 - Radix Sort Pseudocode
 - Inputs is your global array
+# Pseudocode for MPI Parallel Radix Sort
 
+## Main Function
 ```
 main() {
-// Initialize MPI
-MPI_Init(&argc, &argv);
+    // Initialize MPI environment
+    MPI_Init();
 
-// Get number of processes and the current rank
-MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Variables to track rank and number of processes
+    int task_id;
+    int num_procs;
 
-// Total number of elements in the array
-total_elements = get_total_elements();
+    // Get current process rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &task_id);
 
-// Calculate the number of elements each process will handle
-elements_per_proc = total_elements / num_procs;
+    // Get total number of processes
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-// Scatter the input array to each process
-MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+    // If task is master
+    if (task_id == MASTER) {
+        // Distribute data among workers
+        for each worker (i from 1 to num_procs - 1) {
+            // Calculate data chunk size and send data
+            MPI_Send(data_chunk, size, MPI_INT, i, 0, MPI_COMM_WORLD);
+        }
 
-// Get the maximum number to determine the number of digits (if rank 0)
-if (rank == 0) {
-    max_value = find_max(global_array);
-}
+        // Receive unsorted data from workers and write to file
+        for each worker (i from 1 to num_procs - 1) {
+            MPI_Recv(unsorted_data, size, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
+            writeDataToFile("unsortedArray.csv", unsorted_data);
+        }
 
-// Broadcast the max_value to all processes
-MPI_Bcast(&max_value, 1, MPI_INT, root, MPI_COMM_WORLD);
+        // Receive sorted data from workers and write to file
+        for each worker (i from 1 to num_procs - 1) {
+            MPI_Recv(sorted_data, size, MPI_INT, i, 2, MPI_COMM_WORLD, &status);
+            writeDataToFile("sortedArray.csv", sorted_data);
+        }
 
-// Calculate the number of digits in the maximum value
-num_digits = calculate_num_digits(max_value);
+        // Check if sorted correctly
+        checkSorted(sorted_data);
+    }
+    else {
+        // Receive data from master
+        MPI_Recv(local_data, size, MPI_INT, MASTER, 0, MPI_COMM_WORLD, &status);
 
-for (digit = 0; digit < num_digits; digit++) {
-    // Each process performs a counting sort on its local data for the current digit
-    local_count = counting_sort_on_digit(local_array, digit);
+        // Perform radix sort on local data
+        parallel_radix_sort(local_data, max_bits, MPI_COMM_WORLD);
 
-    // Gather all the local arrays at root (process 0)
-    MPI_Gather(local_array, elements_per_proc, MPI_INT, global_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
+        // Send unsorted data to master
+        MPI_Send(local_data, size, MPI_INT, MASTER, 1, MPI_COMM_WORLD);
 
-    if (rank == 0) {
-        // Process 0 performs a global sort based on the gathered data
-        global_count = counting_sort_on_digit(global_array, digit);
+        // Send sorted data to master
+        MPI_Send(local_data, size, MPI_INT, MASTER, 2, MPI_COMM_WORLD);
     }
 
-    // Broadcast the globally sorted array back to all processes for the next digit iteration
-    MPI_Bcast(global_array, total_elements, MPI_INT, root, MPI_COMM_WORLD);
-
-    // Scatter the globally sorted array back to local arrays
-    MPI_Scatter(global_array, elements_per_proc, MPI_INT, local_array, elements_per_proc, MPI_INT, root, MPI_COMM_WORLD);
-}
-
-// After all digits are processed, process 0 has the fully sorted array
-if (rank == 0) {
-    print_sorted_array(global_array);
-}
-
-// Finalize MPI
-MPI_Finalize();
+    // Finalize MPI environment
+    MPI_Finalize();
 }
 ```
+
+## Radix Sort Function
+```
+parallel_radix_sort(local_data, max_bits, comm) {
+    // Iterate over each bit from least significant to most significant
+    for bit from 0 to max_bits - 1 {
+        // Split data into zero and one buckets based on current bit
+        zero_bucket = elements with bit 0;
+        one_bucket = elements with bit 1;
+
+        // Gather sizes of zero buckets from all processes
+        MPI_Allgather(size of zero_bucket, global_zero_sizes);
+
+        // Calculate displacements for gathering zero bucket data
+        calculate_displacements(global_zero_sizes, zero_recv_displs);
+
+        // Gather all zero bucket data from processes
+        MPI_Allgatherv(zero_bucket, global_zero_sizes, zero_recv_displs, zero_recv_buffer);
+
+        // Gather sizes of one buckets from all processes
+        MPI_Allgather(size of one_bucket, global_one_sizes);
+
+        // Calculate displacements for gathering one bucket data
+        calculate_displacements(global_one_sizes, one_recv_displs);
+
+        // Gather all one bucket data from processes
+        MPI_Allgatherv(one_bucket, global_one_sizes, one_recv_displs, one_recv_buffer);
+
+        // Merge zero and one buckets to update local data
+        local_data = zero_recv_buffer + one_recv_buffer;
+
+        // Synchronize all processes before moving to next bit
+        MPI_Barrier(comm);
+    }
+}
+```
+
+## Merge Sort Helper Functions
+### `checkSorted(data)`
+```
+checkSorted(data) {
+    // Iterate through data to verify sorting
+    for i from 1 to size of data - 1 {
+        if data[i] < data[i - 1] {
+            print "Array is NOT sorted correctly.";
+            return;
+        }
+    }
+    print "Array is sorted correctly.";
+}
+```
+### `writeDataToFile(filename, data)`
+```
+writeDataToFile(filename, data) {
+    // Open file in write mode
+    open file with name filename;
+    
+    // Write each element of data to file
+    for element in data {
+        write element to file;
+    }
+    
+    // Close the file
+    close file;
+}
+```
+
+
 
 
 
