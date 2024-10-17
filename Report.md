@@ -271,10 +271,21 @@ merge(arr, left, mid, right) {
 }
 ```
 
-- Radix Sort Pseudocode
-- Inputs is your global array
-# Pseudocode for MPI Parallel Radix Sort
 
+# Pseudocode for MPI Parallel Radix Sort
+- Radix Sort Pseudocode
+- Inputs is your global array size, number of processes, and type of sorting
+the algorithm goes as such
+1. Generate your data in each thread
+- this is then sent to the master where it writes it to "unSortedArray.csv"
+2. perform radix sort
+- seperate each thread into buckets of bits 1s and 0s
+- send the 0s to the top and 1s after that
+- repeat with the next bit
+- send to the master thread
+3. Verify that the radix sort worked
+- this is done in the master thread
+4. write the sorted data to "sortedArray.csv"
 ## Main Function
 ```
 main() {
@@ -369,7 +380,7 @@ parallel_radix_sort(local_data, max_bits, comm) {
 }
 ```
 
-## Merge Sort Helper Functions
+## Radix Sort Helper Functions
 ### `checkSorted(data)`
 ```
 checkSorted(data) {
