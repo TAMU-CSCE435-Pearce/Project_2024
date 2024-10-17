@@ -23,6 +23,7 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 
 - For MPI programs, include MPI calls you will use to coordinate between processes
 
+# Pseudocode for MPI Parallel Bitonic Sort
 - Bitonic Sort Pseudocode
 - Inputs is your global array
 
@@ -105,7 +106,7 @@ main() {
     return 0;
 }
 ```
-
+# Pseudocode for MPI Parallel Sample Sort
 - Sample Sort Pseudocode 
 - Inputs is your global array
 1. Initialize MPI
@@ -175,7 +176,7 @@ main () {
 }
 ```
 
-
+# Pseudocode for MPI Parallel Merge Sort
 - Merge Sort Pseudocode
 - Inputs is your global array
 1. Initialize MPI
