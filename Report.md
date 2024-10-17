@@ -26,6 +26,7 @@ of the sequence is swapped and then remerged into a larger portion of the sequen
 - Bitonic Sort Pseudocode
 - Inputs is your global array
 
+```
 //Bitonic Merge
 bitonicMerge(data, low, count, direction) {
     if (count > 1)
@@ -95,10 +96,12 @@ main() {
     MPI_Finalize();
     return 0;
 }
+```
 
 - Sample Sort Pseudocode 
 - Inputs is your global array
 
+```
 main () {
     // Initialization 
     arr = input array MPI_Init(); 
@@ -151,11 +154,12 @@ main () {
     // Finalize MPI 
     MPI_Finalize();
 }
+```
 
 - Merge Sort Pseudocode
-    - Inputs is your global array
+- Inputs is your global array
 
-```c
+```
 main() {
     // Initialize an unsorted array (arr)
     arr = unsorted array;
@@ -196,9 +200,7 @@ main() {
     // Finalize MPI
     MPI_Finalize();
 }
-```
 
-```c
 mergeSort(arr) {
     // Base case: If array has only one element, it is already sorted
     if left < right {
@@ -215,8 +217,7 @@ mergeSort(arr) {
         merge(arr, left, mid, right);
     }
 }
-```
-```c
+
 merge(arr, left, mid, right) {
     // Allocate a temporary array to store the merged result
     tempArr = temporary array of size (right - left + 1)
@@ -260,10 +261,11 @@ merge(arr, left, mid, right) {
     }
 }
 ```
-- Radix Sort Pseudocode
-    - Inputs is your global array
 
-```c
+- Radix Sort Pseudocode
+- Inputs is your global array
+
+```
 main() {
 // Initialize MPI
 MPI_Init(&argc, &argv);
