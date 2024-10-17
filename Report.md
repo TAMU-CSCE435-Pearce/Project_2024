@@ -100,6 +100,15 @@ main() {
 
 - Sample Sort Pseudocode 
 - Inputs is your global array
+1. Initialize MPI
+2. Sample n * k elements from the unsorted array
+3. Share these samples with every processor
+4. Sort the samples and select k-th, 2*k-th, 3*k-th...n*k-th as pivots
+5. Split the data into buckets according to pivots
+6. Send each bucket to their respective processor
+7. Sort each bucket in parallel
+8. Gather all the sorted buckets merging at the root processor
+9. Finalize MPI
 
 ```
 main () {
