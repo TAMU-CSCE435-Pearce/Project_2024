@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <cmath>
 #include <algorithm>
 #include <caliper/cali.h>
 #include <caliper/cali-manager.h>
@@ -10,43 +11,37 @@
 
 #define MASTER 0
 
-// Function to compare and swap elements based on direction (0 = ascending, 1 = descending)
-void compare_swap(int &a, int &b, bool dir) {
-    if (dir == (a > b)) std::swap(a, b);
-}
-
-// Perform bitonic merge
-void bitonic_merge(std::vector<int>& arr, int low, int cnt, bool dir) {
-    if (cnt > 1) {
-        int k = cnt / 2;
-        for (int i = low; i < low + k; i++)
-            compare_swap(arr[i], arr[i + k], dir);
-        bitonic_merge(arr, low, k, dir);
-        bitonic_merge(arr, low + k, k, dir);
+//Function to swap a[i] and a[j] based on if they match the direction
+void compAndSwap(int a[], int i, int j, int direction)
+{
+    if (direction == (a[i] > a[j])) {
+        int temp = a[i];
+        a[i] = a[j];
+        a[j] = temp;
     }
 }
 
-// Recursive bitonic sort function
-void bitonic_sort(std::vector<int>& arr, int low, int cnt, bool dir) {
-    if (cnt > 1) {
-        int k = cnt / 2;
-        bitonic_sort(arr, low, k, true);  // Sort in ascending order
-        bitonic_sort(arr, low + k, k, false);  // Sort in descending order
-        bitonic_merge(arr, low, cnt, dir);  // Merge whole sequence in ascending/descending order
+//Bitonic merge to be done on every bitonic sequence, merges each sequence into
+// one order depending on direction 
+void bitonicMerge(int a[], int low, int count, int direction)
+{
+    if (count > 1)
+    {
+        int k = count / 2;
+        for (int i = low; i < low + k; ++i) {
+            compAndSwap(a, i, i + k, direction);
+        }
+        bitonicMerge(a, low, k, direction);
+        bitonicMerge(a, low + k, k, direction);
     }
 }
 
-// Function to merge data received from partner processes
-void process_merge(std::vector<int>& local_arr, std::vector<int>& temp, int rank, int partner, bool direction) {
-    std::vector<int> combined(local_arr.size() * 2);
-    std::merge(local_arr.begin(), local_arr.end(), temp.begin(), temp.end(), combined.begin());
-    local_arr.resize(combined.size());
-    std::copy(combined.begin(), combined.end(), local_arr.begin());
-}
-
-// Function to check the correctness of the sorted array
-bool check_correctness(const std::vector<int>& arr) {
-    return std::is_sorted(arr.begin(), arr.end());
+//Changes boolean direction of bitonic sequence
+bool changeDirection(bool curr) {
+    if (curr) {
+        return false;
+    }
+    return true;
 }
 
 int main(int argc, char** argv) {
@@ -81,74 +76,89 @@ int main(int argc, char** argv) {
     const char* comp = "comp";
     const char* comp_small = "comp_small";
     const char* comp_large = "comp_large";
-    const char* correctness_check = correctness_check;
+    const char* correctness_check = "correctness_check";
 
-    std::vector<int> arr;
-    if (rank == 0) {
-        // Track data initialization
-        CALI_MARK_BEGIN(data_init_runtime);
-        srand(time(nullptr));
-        arr.resize(input_size);
-        for (int i = 0; i < input_size; i++) {
-            arr[i] = rand() % 10000;  // Random values
-        }
-        CALI_MARK_END(data_init_runtime);
+    int localArraySize = input_size / num_processes;
+    int localArray[localArraySize]; //Local array for each process seeding
+
+    // Track data initialization
+    CALI_MARK_BEGIN(data_init_runtime);
+    for (int i = 0; i < localArraySize; ++i) {
+        localArray[i] = rand() % 10000;  // Random values
     }
+    CALI_MARK_END(data_init_runtime);
 
-    int local_n = input_size / num_processes;  // Number of elements per process
-    std::vector<int> local_arr(local_n);
+    std::cout << "Array for process " << rank << ": ";
+    for (int i = 0; i < localArraySize; ++i) {
+        std::cout << localArray[i] << " ";
+    }
+    std::cout << std::endl << std::endl;
 
-    // Scatter the array among processes
-    CALI_MARK_BEGIN(comm);
-    CALI_MARK_BEGIN(comm_large);
-    MPI_Scatter(arr.data(), local_n, MPI_INT, local_arr.data(), local_n, MPI_INT, 0, MPI_COMM_WORLD);
-    CALI_MARK_END(comm_large);
+    //Creating the Bitonic Sequence most cases should work on powers of 2,
+    // there is a special case where each process only has one element
+    int stage = 0; //To determine the partner processes
+    bool direction = true; //True is increasing, false is decreasing
+    for (int i = 0; i < std::log2(num_processes); i++) {
+        for (int j = 0; j < std::log2(localArraySize); j++) {
+            bitonicMerge(localArray, 0, localArraySize, direction);
+            direction = changeDirection(direction);
+        }
 
-    CALI_MARK_BEGIN(comp);
+        //Special case where each process has one element
+        if (num_processes == input_size) {
 
-    // Perform local bitonic sort
-    CALI_MARK_BEGIN(comp_large);
-    bitonic_sort(local_arr, 0, local_n, true);
-    CALI_MARK_END(comp_large);
-
-    // Perform bitonic merging across processes
-    for (int stage = 2; stage <= num_processes; stage <<= 1) {
-        for (int step = stage >> 1; step > 0; step >>= 1) {
-            int partner = rank ^ step;
-            if (partner < num_processes) {
-                std::vector<int> temp(local_n);
-                CALI_MARK_BEGIN(comm_small);
-                MPI_Sendrecv(local_arr.data(), local_n, MPI_INT, partner, 0,
-                             temp.data(), local_n, MPI_INT, partner, 0,
-                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                CALI_MARK_END(comm_small);             
-
-                bool direction = ((rank & stage) == 0);  // Ascending or descending depending on stage
-                process_merge(local_arr, temp, rank, partner, direction);
-            }
         }
     }
 
-    if (rank == MASTER) {
-        arr.resize(local_arr.size());
-        std::copy(local_arr.begin(), local_arr.end(), arr.begin());
+    std::cout << "Array bitonic sequence for process " << rank << ": ";
+    for (int i = 0; i < localArraySize; ++i) {
+        std::cout << localArray[i] << " ";
     }
+    std::cout << std::endl << std::endl;
 
-    CALI_MARK_END(comp);
-    CALI_MARK_END(comm);
+    // // Perform local bitonic sort
+    // CALI_MARK_BEGIN(comp_large);
+    // bitonic_sort(local_arr, 0, local_n, true);
+    // CALI_MARK_END(comp_large);
 
-    if (rank == 0) {
-        // Track correctness check
-        CALI_MARK_BEGIN(correctness_check);
-        bool sorted = check_correctness(arr);
-        CALI_MARK_END(correctness_check);
+    // // Perform bitonic merging across processes
+    // for (int stage = 2; stage <= num_processes; stage <<= 1) {
+    //     for (int step = stage >> 1; step > 0; step >>= 1) {
+    //         int partner = rank ^ step;
+    //         if (partner < num_processes) {
+    //             std::vector<int> temp(local_n);
+    //             CALI_MARK_BEGIN(comm_small);
+    //             MPI_Sendrecv(local_arr.data(), local_n, MPI_INT, partner, 0,
+    //                          temp.data(), local_n, MPI_INT, partner, 0,
+    //                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    //             CALI_MARK_END(comm_small);             
 
-        if (sorted) {
-            std::cout << "Array is sorted correctly." << std::endl;
-        } else {
-            std::cout << "Array is not sorted correctly!" << std::endl;
-        }
-    }
+    //             bool direction = ((rank & stage) == 0);  // Ascending or descending depending on stage
+    //             process_merge(local_arr, temp, rank, partner, direction);
+    //         }
+    //     }
+    // }
+
+    // if (rank == MASTER) {
+    //     arr.resize(local_arr.size());
+    //     std::copy(local_arr.begin(), local_arr.end(), arr.begin());
+    // }
+
+    // CALI_MARK_END(comp);
+    // CALI_MARK_END(comm);
+
+    // if (rank == 0) {
+    //     // Track correctness check
+    //     CALI_MARK_BEGIN(correctness_check);
+    //     bool sorted = check_correctness(arr);
+    //     CALI_MARK_END(correctness_check);
+
+    //     if (sorted) {
+    //         std::cout << "Array is sorted correctly." << std::endl;
+    //     } else {
+    //         std::cout << "Array is not sorted correctly!" << std::endl;
+    //     }
+    // }
 
     adiak::init(NULL);
     adiak::launchdate();    // launch date of the job
@@ -172,4 +182,3 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
 }
-
