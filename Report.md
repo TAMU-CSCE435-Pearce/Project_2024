@@ -667,7 +667,7 @@ To automate running a set of experiments, parameterize your program.
 
 When your program works with these parameters, you can write a shell script 
 that will run a for loop over the parameters above (e.g., on 64 processors, 
-perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).  
+perform runs that invoke algorithm for Sorted, ReverseSorted, and Random data).  
 
 ### 4c. You should measure the following performance metrics
 - `Time`
@@ -676,6 +676,8 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
     - Avg time/rank
     - Total time
     - Variance time/rank
+
+#### Radix Sort Performance Evaluation:
 
 
 ## 5. Presentation
