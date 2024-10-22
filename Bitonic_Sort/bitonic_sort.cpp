@@ -1,8 +1,6 @@
 #include <mpi.h>
 #include <iostream>
-#include <vector>
 #include <cstdlib>
-#include <ctime>
 #include <cmath>
 #include <algorithm>
 #include <caliper/cali.h>
@@ -27,30 +25,29 @@ void bitonicMerge(int a[], int low, int count, int direction)
 {
     if (count > 1)
     {
-        int k = count / 2;
-        for (int i = low; i < low + k; ++i) {
-            compAndSwap(a, i, i + k, direction);
+        int partnerIndex = count / 2;
+        for (int i = low; i < low + partnerIndex; ++i) {
+            compAndSwap(a, i, i + partnerIndex, direction);
         }
-        bitonicMerge(a, low, k, direction);
-        bitonicMerge(a, low + k, k, direction);
+        bitonicMerge(a, low, partnerIndex, direction);
+        bitonicMerge(a, low + partnerIndex, partnerIndex, direction);
     }
 }
 
-void bitonicSort(int a[],int low, int cnt, int dir)
+void bitonicSort(int a[],int low, int count, int direction)
 {
-    if (cnt>1)
+    if (count > 1)
     {
-        int k = cnt/2;
+        int partnerIndex = count / 2;
  
-        // sort in ascending order since dir here is 1
-        bitonicSort(a, low, k, 1);
+        //Sort in ascending order since dir here is 1
+        bitonicSort(a, low, partnerIndex, 1);
  
-        // sort in descending order since dir here is 0
-        bitonicSort(a, low+k, k, 0);
+        //Sort in descending order since dir here is 0
+        bitonicSort(a, low + partnerIndex, partnerIndex, 0);
  
-        // Will merge whole sequence in ascending order
-        // since dir=1.
-        bitonicMerge(a,low, cnt, dir);
+        //Will merge whole sequence in ascending order since dir=1.
+        bitonicMerge(a, low, count, direction);
     }
 }
 
@@ -63,8 +60,8 @@ int main(int argc, char** argv) {
     const char* data_type = typeid(int).name();
     int size_of_data_type = sizeof(int);
     int input_size = atoi(argv[1]);
-    std::string input_type = "random";
-    std::string scalability = "weak";
+    std::string input_type = argv[2];
+    std::string scalability = "strong";
     int group_number = 14;
     std::string implementation_source = "online";
 
@@ -91,11 +88,41 @@ int main(int argc, char** argv) {
     int localArraySize = input_size / num_processes;
     int localArray[localArraySize]; //Local array for each process seeding
 
-    // Track data initialization
+    //Track data initialization
     CALI_MARK_BEGIN(data_init_runtime);
-    for (int i = 0; i < localArraySize; ++i) {
-        localArray[i] = rand() % 10000;  // Random values
+
+    //Random values
+    if (input_type == "Random") {
+        for (int i = 0; i < localArraySize; ++i) {
+            localArray[i] = rand() % 10000;
+        }
     }
+
+    //Sorted values
+    if (input_type == "Sorted") {
+        for (int i = 0; i < localArraySize; ++i) {
+            localArray[i] = i + rank * localArraySize;
+        }
+    }
+
+    //Reverse sorted values
+    if (input_type == "ReverseSorted") {
+        for (int i = 0; i < localArraySize; ++i) {
+            localArray[i] = localArraySize - i + (num_processes - rank - 1) * localArraySize;
+        }
+    }
+
+    //1% perturbed values
+    if (input_type == "1_perc_perturbed") {
+        for (int i = 0; i < localArraySize; ++i) {
+            localArray[i] = i + rank * localArraySize;
+        }
+        for (int i = 0; i < localArraySize * 0.01; i++){
+            int index = rand() % localArraySize;
+            localArray[index] = rand() % 10000;
+        }
+    }
+
     CALI_MARK_END(data_init_runtime);
 
     // std::cout << "Array for process " << rank << ": ";
@@ -116,55 +143,56 @@ int main(int argc, char** argv) {
     //Waiting for each process to sort before merging them
     MPI_Barrier(MPI_COMM_WORLD);
 
-    int mergedArraySize = localArraySize;
-    int l;
-    int k;
+    CALI_MARK_BEGIN(comp);
+    CALI_MARK_BEGIN(comp_large);
+    int copyIndex;
+    int partnerIndex;
     for (int i = 0; i < (int) std::log2(num_processes); ++i) {
         for (int j = i; j >= 0; --j) {
-            int iBit = (rank >> (i + 1)) & 1;
-            int jBit = (rank >> j) & 1;
-            int partner[localArraySize];
-            int copy[localArraySize];
+            int bit1 = (rank >> (i + 1)) & 1;
+            int bit2 = (rank >> j) & 1;
+            int partnerArray[localArraySize];
+            int copyArray[localArraySize];
 
             CALI_MARK_BEGIN(comm);
             CALI_MARK_BEGIN(comm_large);
             MPI_Send(&localArray, localArraySize, MPI_INT, rank ^ (1 << j), 0, MPI_COMM_WORLD);
-            MPI_Recv(&partner, localArraySize, MPI_INT, rank ^ (1 << j), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&partnerArray, localArraySize, MPI_INT, rank ^ (1 << j), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             CALI_MARK_END(comm_large);
             CALI_MARK_END(comm);
 
-            for (l = 0; l < localArraySize; l++) {
-                copy[l] = localArray[l];
+            for (copyIndex = 0; copyIndex < localArraySize; copyIndex++) {
+                copyArray[copyIndex] = localArray[copyIndex];
             }
 
-            //Merge smaller elements
-            if (iBit == jBit) {
-                l = 0;
-                k = 0;
-                while (l + k < localArraySize) {
-                    if (copy[l] > partner[k]) {
-                        localArray[l + k] = partner[k];
-                        k++;
+            //Merging the smaller elements to the lower process
+            if (bit1 == bit2) {
+                copyIndex = 0;
+                partnerIndex = 0;
+                while (copyIndex + partnerIndex < localArraySize) {
+                    if (copyArray[copyIndex] > partnerArray[partnerIndex]) {
+                        localArray[copyIndex + partnerIndex] = partnerArray[partnerIndex];
+                        partnerIndex++;
                     }
                     else {
-                        localArray[l + k] = copy[l];
-                        l++;
+                        localArray[copyIndex + partnerIndex] = copyArray[copyIndex];
+                        copyIndex++;
                     }
                 }
             }
 
-            //Merge larger elements
+            //Merging the larger elements to the higher process
             else {
-                l = localArraySize;
-                k = localArraySize;
-                while (l + k > localArraySize) {
-                    if (copy[l - 1] < partner[k - 1]) {
-                        localArray[l + k - localArraySize - 1] = partner[k - 1];
-                        k--;
+                copyIndex = localArraySize;
+                partnerIndex = localArraySize;
+                while (copyIndex + partnerIndex > localArraySize) {
+                    if (copyArray[copyIndex - 1] < partnerArray[partnerIndex - 1]) {
+                        localArray[copyIndex + partnerIndex - localArraySize - 1] = partnerArray[partnerIndex - 1];
+                        partnerIndex--;
                     }
                     else {
-                        localArray[l + k - localArraySize - 1] = copy[l - 1];
-                        l--;
+                        localArray[copyIndex + partnerIndex - localArraySize - 1] = copyArray[copyIndex - 1];
+                        copyIndex--;
                     }
                 } 
             }
@@ -182,6 +210,8 @@ int main(int argc, char** argv) {
             // std::cout << std::endl << std::endl;
         }
     }
+    CALI_MARK_END(comp_large);
+    CALI_MARK_END(comp);
 
     //Waiting for final sort before checking correctness
     MPI_Barrier(MPI_COMM_WORLD);
@@ -197,7 +227,11 @@ int main(int argc, char** argv) {
     bool sorted = true;
 
     //Grabbing all the values and collecting to the master
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_small);
     MPI_Gather(localArray, localArraySize, MPI_INT, finalArray, localArraySize, MPI_INT, 0, MPI_COMM_WORLD);
+    CALI_MARK_END(comm_small);
+    CALI_MARK_END(comm);
 
     if (rank == 0) {
         //Track correctness check
