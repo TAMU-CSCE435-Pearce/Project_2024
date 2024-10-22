@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     std::string input_type = argv[2];
     std::string scalability = "strong";
     int group_number = 14;
-    std::string implementation_source = "online";
+    std::string implementation_source = "ai";
 
     MPI_Init(&argc, &argv);
 
