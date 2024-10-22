@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
     //Initial sorting of sequence on each processor to get a bitonic sequence across all processors
     CALI_MARK_BEGIN(comp);
     CALI_MARK_BEGIN(comp_large);
-    bitonicSort(localArray, 0, localArraySize, direction[rank % 2]);
+    bitonicSort(localArray, 0, localArraySize, direction[0]);
     CALI_MARK_END(comp_large);
     CALI_MARK_END(comp);
 
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
     int mergedArraySize = localArraySize;
     int l;
     int k;
-    for (int i = 0; i < std::log2(num_processes); ++i) {
+    for (int i = 0; i < (int) std::log2(num_processes); ++i) {
         for (int j = i; j >= 0; --j) {
             int iBit = (rank >> (i + 1)) & 1;
             int jBit = (rank >> j) & 1;
@@ -174,6 +174,12 @@ int main(int argc, char** argv) {
             //     std::cout << mergedArray[i] << " ";
             // }
             // std::cout << std::endl << std::endl;
+
+            // std::cout << "Partner sequence for process " << rank << ": ";
+            // for (int i = 0; i < localArraySize; ++i) {
+            //     std::cout << partnerArray[i] << " ";
+            // }
+            // std::cout << std::endl << std::endl;
         }
     }
 
@@ -191,12 +197,10 @@ int main(int argc, char** argv) {
     bool sorted = true;
 
     //Grabbing all the values and collecting to the master
-    if (rank == 0) {
-        MPI_Gather(localArray, localArraySize, MPI_INT, finalArray, localArraySize, MPI_INT, 0, MPI_COMM_WORLD);
-    }
+    MPI_Gather(localArray, localArraySize, MPI_INT, finalArray, localArraySize, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Track correctness check
     if (rank == 0) {
+        //Track correctness check
         CALI_MARK_BEGIN(correctness_check);
         for (int i = 0; i < input_size - 1; ++i) {
             if (finalArray[i + 1] < finalArray[i]) {
