@@ -9,6 +9,9 @@
 
 #define MASTER 0
 
+//7 plots -> each of input size (title)
+// Each line is a graph
+
 //Function to swap a[i] and a[j] based on if they match the direction
 void compAndSwap(int a[], int i, int j, int direction)
 {
