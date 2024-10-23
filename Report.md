@@ -678,7 +678,22 @@ perform runs that invoke algorithm for Sorted, ReverseSorted, and Random data).
     - Variance time/rank
 
 #### Radix Sort Performance Evaluation:
+Preface: For the sake of this particular implementation of Radix, 240 cali files were collected instead of 280. This due to the fact Radix sort became inefficient for Random input at array size $$2^{26}$$, which aligns with the implementation for this particular instance of Radix. In particular, this ineffiency was with regards to Random input with process size 2, in which the job took longer than 3 hours to complete. Because Radix works by placing objects into buckets, and sorting by digit, this would incur more communication costs as local sorted arrays are redistributed to other processes with every step and result in substantially increased runtime.
 
+#### Radix Overall Performance (Main Strong Scaling) 
+
+#### Radix Computation Performance
+With regards to computation
+#### Radix Communicaion Performance
+With regards to communication, the reverse sorted input type consistently appeared to incur larger communication costs compared to the other three processes. This aligns with our understanding of the Radix sort implementation used for this project, as following local sort, the index location of a particular array item would be determined through counting the global prefix sum. Because Radix sort sorts from least significant to most significant digit using buckets, this would result in ReverseSorted input types incurring more communication costs during the distribution phase of radix sort, which distributed array items based on their digit index being used.
+![alt text](Radix_Plots/Radix%20comm_67108864.png)
+
+What is also interesting to note is how time communicating on each process decreased as process size increased. Because this implementation of radix sort used caliper to count the amount of time a process spent communicating, for larger array inputs, individual processes spent less time in the communication section. As shown in the below figure, time spent individually for each process decreased. This aligns with our understanding of partitioning jobs across processes. When we increase process size, the subproblem size on each process decreases. Since each process individually communicates with other processes by sending the array item and the global index to the according process, individual time spent communicating decreases as outbound communication and inbound communication becomes bound by the partition size of the array.
+![alt text](Radix_Plots/Radix%20comm_16777216.png)
+
+#### Radix Weak Scaling Observations:
+With regards to weak scaling, 
+![alt text](Radix_Plots/Radix%20comm_16777216.png)
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
