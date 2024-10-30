@@ -1,0 +1,35 @@
+# Makefile for merge Sort Test Program
+
+# Compiler
+CXX = mpic++
+
+# Compiler flags
+CXXFLAGS = -Wall -g
+
+# Linker flags
+LDFLAGS = -L/usr/local/lib -lcaliper -ladiak
+
+# Source files
+SRCS = merge_sort.cpp
+
+# Output executable name
+TARGET = merge_sort_test
+
+# Default target
+
+all: $(TARGET)
+
+# Rule to build the executable
+$(TARGET): $(SRCS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(SRCS) 
+
+# Clean up the build files
+clean:
+	rm -f $(TARGET)
+
+# Run the program with a given input file
+run: $(TARGET)
+	@echo "Running the program..."
+	@./$(TARGET) input_65536_Random.txt 65537
+
+.PHONY: all clean run

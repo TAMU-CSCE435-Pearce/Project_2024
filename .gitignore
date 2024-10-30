@@ -1,0 +1,33 @@
+# Ignore object files, executables, and other build artifacts
+*.o
+*.out
+*.exe
+*.gch
+*.a
+*.so
+*.dylib
+
+# Ignore binary files
+*.bin
+*.elf
+
+# Ignore debugging and profiling files
+*.dSYM/
+*.prof
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore editor and system files
+*.swp
+*~
+.vscode/
+.vs
+.DS_Store
+
+# Ignore build directory if applicable
+build/
+
+# Ignore generated logs and core dumps
+*.log
+core

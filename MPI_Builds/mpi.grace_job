@@ -17,13 +17,14 @@
 #
 ##First Executable Line
 #
-array_size=$1
-processes=$2
+array_exponent=$1     # The first argument passed to sbatch will be used as the array size exponent
+processes=$2          # The second argument passed to sbatch will be used as the number of processes
 
-module load intel/2020b       # load Intel software stack
+module load intel/2020b       # Load Intel software stack
 module load CMake/3.12.1
 module load GCCcore/8.3.0
 
-CALI_CONFIG="spot(output=p${processes}-a${array_size}.cali, \
+# Set up the Caliper profiling tool with the appropriate configuration
+CALI_CONFIG="spot(output=p${processes}-a${array_exponent}.cali, \
     time.variance,profile.mpi)" \
-mpirun -np $processes ./mergesort $array_size
+mpirun -np $processes ./bitonic_sort $array_exponent $processes
